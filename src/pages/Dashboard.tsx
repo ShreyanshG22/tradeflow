@@ -1,7 +1,7 @@
 
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
-import { PanelLeft, LayoutDashboard, LineChart, Zap, BarChart, Settings, Plus, Rocket } from "lucide-react";
+import { PanelLeft, LayoutDashboard, LineChart, Zap, BarChart, Settings, Plus, Rocket, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -20,6 +20,7 @@ import {
 import { DashboardMarketOverview } from "@/components/dashboard/MarketOverview";
 import { DashboardActiveStrategies } from "@/components/dashboard/ActiveStrategies";
 import { DashboardRecentBacktests } from "@/components/dashboard/RecentBacktests";
+import { Badge } from "@/components/ui/badge";
 
 const Dashboard = () => {
   // Update the page title
@@ -122,13 +123,14 @@ const AppSidebar = () => {
               <Link to="/trading">
                 <Zap className="h-5 w-5" />
                 <span>Live Trading</span>
+                <Badge className="ml-auto bg-green-500">New</Badge>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild tooltip="Performance Reports">
               <Link to="/reports">
-                <BarChart className="h-5 w-5" />
+                <FileText className="h-5 w-5" />
                 <span>Performance Reports</span>
               </Link>
             </SidebarMenuButton>

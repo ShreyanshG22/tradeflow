@@ -8,6 +8,9 @@ import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import StrategyBuilder from "./pages/StrategyBuilder";
 import BacktestingModule from "./pages/BacktestingModule";
+import LiveTradingModule from "./pages/LiveTradingModule";
+import PerformanceReports from "./pages/PerformanceReports";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,6 +26,9 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/strategy-builder" element={<StrategyBuilder />} />
           <Route path="/backtesting" element={<BacktestingModule />} />
+          <Route path="/trading" element={<LiveTradingModule />} />
+          <Route path="/reports" element={<PerformanceReports />} />
+          <Route path="/settings" element={<Settings />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
