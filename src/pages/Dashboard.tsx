@@ -1,137 +1,49 @@
 
-import React from "react";
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Sidebar, SidebarMenuItem, SidebarMenuButton, SidebarProvider } from "@/components/ui/sidebar";
+import { PanelLeft, LayoutDashboard, LineChart, Zap, BarChart, Settings, Plus, Rocket } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  LayoutDashboard,
-  Brain,
-  LineChart,
-  Settings,
-  HelpCircle,
-  LogOut,
-  Play,
-  BellRing,
-  Plus,
-} from "lucide-react";
+  SidebarProvider,
+  Sidebar,
+  SidebarContent,
+  SidebarHeader,
+  SidebarFooter,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarTrigger,
+  SidebarInset,
+  useSidebar
+} from "@/components/ui/sidebar";
 import { DashboardMarketOverview } from "@/components/dashboard/MarketOverview";
 import { DashboardActiveStrategies } from "@/components/dashboard/ActiveStrategies";
 import { DashboardRecentBacktests } from "@/components/dashboard/RecentBacktests";
 
-export default function Dashboard() {
-  return (
-    <SidebarProvider>
-      <div className="flex h-screen bg-background">
-        <title>Dashboard | AlgoTrade</title>
-        <Sidebar>
-          <div className="flex h-full flex-col">
-            <div className="p-2">
-              <h2 className="mb-4 ml-4 text-xl font-semibold tracking-tight">AlgoTrade</h2>
-              <div className="space-y-1">
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Dashboard">
-                    <Link to="/dashboard">
-                      <LayoutDashboard className="h-5 w-5" />
-                      <span>Dashboard</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Strategy Builder">
-                    <Link to="/strategy-builder">
-                      <Brain className="h-5 w-5" />
-                      <span>Strategy Builder</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Backtesting">
-                    <Link to="/backtesting">
-                      <LineChart className="h-5 w-5" />
-                      <span>Backtesting</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Live Trading">
-                    <Link to="/live-trading">
-                      <Play className="h-5 w-5" />
-                      <span>Live Trading</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </div>
-            </div>
-            <div className="mt-auto hidden p-2 pt-6 lg:block">
-              <div className="space-y-2">
-                <SidebarMenuItem>
-                  <SidebarMenuButton tooltip="Settings">
-                    <Settings className="h-5 w-5" />
-                    <span>Settings</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton tooltip="Help">
-                    <HelpCircle className="h-5 w-5" />
-                    <span>Help</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton tooltip="Logout">
-                    <LogOut className="h-5 w-5" />
-                    <span>Logout</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </div>
-            </div>
-          </div>
-        </Sidebar>
+const Dashboard = () => {
+  // Update the page title
+  useEffect(() => {
+    document.title = "Dashboard | TradeFlow";
+  }, []);
 
-        <div className="flex flex-1 flex-col overflow-hidden">
-          <header className="sticky top-0 z-10 border-b bg-background">
-            <div className="flex h-16 items-center justify-between px-4 sm:px-6">
-              <div>
-                <h1 className="text-xl font-semibold text-foreground">Dashboard</h1>
-              </div>
-              <div className="flex items-center gap-4">
-                <Button asChild variant="outline" size="icon">
-                  <div>
-                    <BellRing className="h-5 w-5" />
-                    <span className="sr-only">Notifications</span>
-                  </div>
-                </Button>
-                <Button asChild variant="outline" size="icon">
-                  <div>
-                    <HelpCircle className="h-5 w-5" />
-                    <span className="sr-only">Help</span>
-                  </div>
-                </Button>
-                <Button asChild variant="outline" size="icon">
-                  <div>
-                    <Settings className="h-5 w-5" />
-                    <span className="sr-only">Settings</span>
-                  </div>
-                </Button>
-              </div>
-            </div>
-            <div className="border-t px-4 py-3 sm:px-6">
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="flex-1">
-                  <h2 className="text-sm font-medium text-muted-foreground">
-                    Welcome back! Here's an overview of your trading
-                  </h2>
+  return (
+    <SidebarProvider defaultOpen={true}>
+      <div className="min-h-screen w-full flex bg-muted/10">
+        <AppSidebar />
+        <SidebarInset className="pt-6">
+          <div className="container px-4 md:px-6">
+            <div className="flex flex-col gap-2 md:gap-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+                  <p className="text-muted-foreground">Welcome back! Here's an overview of your trading activities.</p>
                 </div>
                 <div className="flex gap-2">
                   <Button asChild variant="outline" size="sm" className="gap-1">
                     <Link to="/backtesting">
                       <LineChart className="h-4 w-4" />
                       <span className="hidden sm:inline">Backtest</span>
-                    </Link>
-                  </Button>
-                  <Button asChild variant="outline" size="sm" className="gap-1">
-                    <Link to="/live-trading">
-                      <Play className="h-4 w-4" />
-                      <span className="hidden sm:inline">Live Trading</span>
                     </Link>
                   </Button>
                   <Button asChild size="sm" className="gap-1">
@@ -142,18 +54,105 @@ export default function Dashboard() {
                   </Button>
                 </div>
               </div>
-            </div>
-          </header>
 
-          <main className="flex-1 overflow-auto p-4 sm:p-6">
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-7">
-              <DashboardMarketOverview />
-              <DashboardActiveStrategies />
-              <DashboardRecentBacktests />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                <DashboardMarketOverview />
+                <DashboardActiveStrategies />
+                <DashboardRecentBacktests />
+              </div>
+
+              <div className="fixed bottom-8 right-8 flex flex-col gap-2">
+                <Button asChild size="icon" className="rounded-full h-14 w-14 shadow-lg">
+                  <Link to="/strategy-builder">
+                    <Plus className="h-6 w-6" />
+                  </Link>
+                </Button>
+              </div>
             </div>
-          </main>
-        </div>
+          </div>
+        </SidebarInset>
       </div>
     </SidebarProvider>
   );
-}
+};
+
+const AppSidebar = () => {
+  const { state, toggleSidebar } = useSidebar();
+  const isExpanded = state === "expanded";
+
+  return (
+    <Sidebar>
+      <SidebarHeader className="flex items-center justify-between p-4">
+        <div className="flex items-center gap-2">
+          <div className="relative w-8 h-8 rounded-lg bg-primary flex items-center justify-center overflow-hidden">
+            <span className="text-primary-foreground font-semibold">T</span>
+          </div>
+          {isExpanded && <span className="font-semibold text-xl">TradeFlow</span>}
+        </div>
+        <SidebarTrigger />
+      </SidebarHeader>
+      <SidebarContent>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive tooltip="Dashboard">
+              <Link to="/dashboard">
+                <LayoutDashboard className="h-5 w-5" />
+                <span>Dashboard</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild tooltip="Strategy Builder">
+              <Link to="/strategy-builder">
+                <PanelLeft className="h-5 w-5" />
+                <span>Strategy Builder</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild tooltip="Backtesting">
+              <Link to="/backtesting">
+                <LineChart className="h-5 w-5" />
+                <span>Backtesting</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild tooltip="Live Trading">
+              <Link to="/trading">
+                <Zap className="h-5 w-5" />
+                <span>Live Trading</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild tooltip="Performance Reports">
+              <Link to="/reports">
+                <BarChart className="h-5 w-5" />
+                <span>Performance Reports</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild tooltip="Settings">
+              <Link to="/settings">
+                <Settings className="h-5 w-5" />
+                <span>Settings</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarContent>
+      <SidebarFooter className="p-4">
+        <Button asChild variant="outline" className="w-full flex items-center gap-2">
+          <Link to="/">
+            <Rocket className="h-4 w-4" />
+            <span>Back to Home</span>
+          </Link>
+        </Button>
+      </SidebarFooter>
+    </Sidebar>
+  );
+};
+
+export default Dashboard;

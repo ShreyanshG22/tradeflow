@@ -1,52 +1,58 @@
 
-import React from "react";
-import { Link } from "react-router-dom";
-import { Sidebar, SidebarProvider } from "@/components/ui/sidebar";
+import { useState } from "react";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { StrategyBlocks } from "@/components/strategy-builder/StrategyBlocks";
 import { StrategyCanvas } from "@/components/strategy-builder/StrategyCanvas";
 import { StrategyPreview } from "@/components/strategy-builder/StrategyPreview";
 import { Button } from "@/components/ui/button";
-import { LineChart, Play } from "lucide-react";
+import { Save, Play } from "lucide-react";
+import { Link } from "react-router-dom";
 
-export default function StrategyBuilder() {
+const StrategyBuilder = () => {
+  const [strategyName, setStrategyName] = useState("Untitled Strategy");
+
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen">
-        <title>Strategy Builder | AlgoTrade</title>
-        <Sidebar />
-        <div className="flex flex-1 overflow-hidden">
-          <div className="flex w-full flex-col">
-            <div className="flex items-center justify-between border-b p-4">
-              <h1 className="text-xl font-bold">Strategy Builder</h1>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" asChild>
-                  <Link to="/backtesting">
-                    <LineChart className="mr-2 h-4 w-4" />
-                    Backtest
-                  </Link>
-                </Button>
-                <Button size="sm" asChild>
-                  <Link to="/live-trading">
-                    <Play className="mr-2 h-4 w-4" />
-                    Deploy Live
-                  </Link>
-                </Button>
-              </div>
-            </div>
-            <div className="flex flex-1 overflow-hidden">
-              <div className="w-64 border-r p-4">
-                <StrategyBlocks />
-              </div>
-              <div className="flex-1 overflow-hidden">
-                <StrategyCanvas />
-              </div>
-              <div className="w-64 border-l p-4">
-                <StrategyPreview />
-              </div>
-            </div>
-          </div>
+    <div className="flex flex-col h-screen">
+      <header className="border-b py-4 px-6 flex items-center justify-between bg-background">
+        <div>
+          <h1 className="text-2xl font-bold">{strategyName}</h1>
+          <p className="text-sm text-muted-foreground">Strategy Builder</p>
         </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline">
+            <Save className="mr-2 h-4 w-4" />
+            Save
+          </Button>
+          <Button asChild>
+            <Link to="/backtesting">
+              <Play className="mr-2 h-4 w-4" />
+              Backtest
+            </Link>
+          </Button>
+        </div>
+      </header>
+
+      <div className="flex-1 overflow-hidden">
+        <ResizablePanelGroup direction="horizontal" className="h-full">
+          <ResizablePanel defaultSize={20} minSize={15} maxSize={30} className="bg-muted/10">
+            <StrategyBlocks />
+          </ResizablePanel>
+          
+          <ResizableHandle withHandle />
+          
+          <ResizablePanel defaultSize={60} minSize={40}>
+            <StrategyCanvas />
+          </ResizablePanel>
+          
+          <ResizableHandle withHandle />
+          
+          <ResizablePanel defaultSize={20} minSize={15} maxSize={30} className="bg-muted/10">
+            <StrategyPreview />
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </div>
-    </SidebarProvider>
+    </div>
   );
-}
+};
+
+export default StrategyBuilder;
