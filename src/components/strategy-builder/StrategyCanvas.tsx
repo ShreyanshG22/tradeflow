@@ -20,7 +20,16 @@ import { ExitNode } from './nodes/ExitNode';
 import { IndicatorNode } from './nodes/IndicatorNode';
 import { PositionSizeNode } from './nodes/PositionSizeNode';
 
-const initialNodes = [
+// Define a type for our nodes to ensure consistency
+type CustomNode = {
+  id: string;
+  type: string;
+  position: { x: number; y: number };
+  data: { label: string };
+  className?: string;
+};
+
+const initialNodes: CustomNode[] = [
   {
     id: 'welcome',
     type: 'default',
@@ -81,12 +90,13 @@ const StrategyCanvasInner = () => {
         y: event.clientY - reactFlowBounds.top,
       };
 
-      // Generate a unique ID
-      const newNode = {
+      // Generate a unique ID and create a new node with the required className property
+      const newNode: CustomNode = {
         id: `${type}-${nodes.length + 1}`,
         type,
         position,
         data: { label: type.split('-').slice(1).join(' ').replace(/\b\w/g, l => l.toUpperCase()) },
+        className: '' // Add empty className to satisfy the type requirement
       };
 
       // Remove the welcome node if it exists when dropping the first custom node
