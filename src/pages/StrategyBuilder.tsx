@@ -1,6 +1,5 @@
 
 import React from "react";
-import { Helmet } from "react-helmet";
 import { Link } from "react-router-dom";
 import { Sidebar } from "@/components/ui/sidebar";
 import { StrategyBlocks } from "@/components/strategy-builder/StrategyBlocks";
@@ -12,9 +11,7 @@ import { LineChart, Play } from "lucide-react";
 export default function StrategyBuilder() {
   return (
     <div className="flex min-h-screen">
-      <Helmet>
-        <title>Strategy Builder | AlgoTrade</title>
-      </Helmet>
+      <title>Strategy Builder | AlgoTrade</title>
       <Sidebar />
       <div className="flex flex-1 overflow-hidden">
         <div className="flex w-full flex-col">

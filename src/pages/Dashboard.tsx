@@ -1,20 +1,16 @@
 import React from "react";
-import { Helmet } from "react-helmet";
 import { Link } from "react-router-dom";
 import { Sidebar, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard,
-  PlaySquare,
+  Brain,
   LineChart,
   Settings,
-  AlertTriangle,
-  Plus,
-  BellRing,
   HelpCircle,
   LogOut,
-  Brain,
   Play,
+  BellRing,
 } from "lucide-react";
 import { DashboardMarketOverview } from "@/components/dashboard/MarketOverview";
 import { DashboardActiveStrategies } from "@/components/dashboard/ActiveStrategies";
@@ -23,15 +19,13 @@ import { DashboardRecentBacktests } from "@/components/dashboard/RecentBacktests
 export default function Dashboard() {
   return (
     <div className="flex h-screen bg-background">
-      <Helmet>
-        <title>Dashboard | AlgoTrade</title>
-      </Helmet>
+      <title>Dashboard | AlgoTrade</title>
       <Sidebar>
         <div className="flex h-full flex-col">
           <div className="p-2">
             <h2 className="mb-4 ml-4 text-xl font-semibold tracking-tight">AlgoTrade</h2>
             <div className="space-y-1">
-              <SidebarMenuItem active>
+              <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="Dashboard">
                   <Link to="/dashboard">
                     <LayoutDashboard className="h-5 w-5" />

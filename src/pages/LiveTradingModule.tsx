@@ -1,6 +1,5 @@
 
 import React from "react";
-import { Helmet } from "react-helmet";
 import { Sidebar } from "@/components/ui/sidebar";
 import { LiveTradingBrokerConnection } from "@/components/live-trading/LiveTradingBrokerConnection";
 import { LiveTradingExecutionTable } from "@/components/live-trading/LiveTradingExecutionTable";
@@ -9,9 +8,7 @@ import { LiveTradingMonitoring } from "@/components/live-trading/LiveTradingMoni
 export default function LiveTradingModule() {
   return (
     <div className="flex min-h-screen">
-      <Helmet>
-        <title>Live Trading | AlgoTrade</title>
-      </Helmet>
+      <title>Live Trading | AlgoTrade</title>
       <Sidebar />
       <div className="flex-1 p-6 lg:p-8">
         <div className="space-y-6">
