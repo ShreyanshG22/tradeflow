@@ -6,6 +6,7 @@ import { StrategyCanvas } from "@/components/strategy-builder/StrategyCanvas";
 import { StrategyPreview } from "@/components/strategy-builder/StrategyPreview";
 import { Button } from "@/components/ui/button";
 import { Save, Play } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const StrategyBuilder = () => {
   const [strategyName, setStrategyName] = useState("Untitled Strategy");
@@ -22,9 +23,11 @@ const StrategyBuilder = () => {
             <Save className="mr-2 h-4 w-4" />
             Save
           </Button>
-          <Button>
-            <Play className="mr-2 h-4 w-4" />
-            Backtest
+          <Button asChild>
+            <Link to="/backtesting">
+              <Play className="mr-2 h-4 w-4" />
+              Backtest
+            </Link>
           </Button>
         </div>
       </header>
