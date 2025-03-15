@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
-import { Bell, Mail, Shield, CreditCard, User, RefreshCw, Database, Settings as SettingsIcon } from "lucide-react";
+import { Bell, Mail, Shield, CreditCard, User, RefreshCw, Database, Settings as SettingsIcon, Plus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 const Settings = () => {
