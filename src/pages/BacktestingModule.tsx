@@ -1,10 +1,12 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Sidebar, SidebarProvider } from "@/components/ui/sidebar";
 import { BacktestingForm } from "@/components/backtesting/BacktestingForm";
 import { BacktestingResults } from "@/components/backtesting/BacktestingResults";
 
 export default function BacktestingModule() {
+  const [hasResults, setHasResults] = useState(false);
+  
   return (
     <SidebarProvider>
       <div className="flex min-h-screen">
@@ -19,7 +21,7 @@ export default function BacktestingModule() {
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               <BacktestingForm />
-              <BacktestingResults />
+              <BacktestingResults hasResults={hasResults} />
             </div>
           </div>
         </div>
