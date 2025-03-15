@@ -1,15 +1,57 @@
 
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Play, Pause, AlertTriangle } from "lucide-react";
+import { Play, Pause, AlertTriangle, Trash, ExternalLink, Info, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "@/components/ui/table";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { toast } from "@/hooks/use-toast";
 
 const LiveTradingModule = () => {
   // Update the page title
   useEffect(() => {
     document.title = "Live Trading | TradeFlow";
   }, []);
+
+  const [brokerConnected, setBrokerConnected] = useState<boolean>(false);
+  const [selectedBroker, setSelectedBroker] = useState<string>("");
+  const [apiKey, setApiKey] = useState<string>("");
+  const [secretKey, setSecretKey] = useState<string>("");
+  const [isTestingConnection, setIsTestingConnection] = useState<boolean>(false);
+
+  // Mock function to test broker connection
+  const testBrokerConnection = () => {
+    setIsTestingConnection(true);
+    // Simulate API call
+    setTimeout(() => {
+      setIsTestingConnection(false);
+      setBrokerConnected(true);
+      toast({
+        title: "Connection Successful",
+        description: `Connected to ${selectedBroker} successfully.`,
+        variant: "default",
+      });
+    }, 1500);
+  };
+
+  const emergencyPauseAllTrades = () => {
+    toast({
+      title: "Emergency Stop Activated",
+      description: "All trading activities have been paused.",
+      variant: "destructive",
+    });
+  };
 
   return (
     <div className="container p-4 md:p-6 space-y-6">
@@ -20,141 +62,272 @@ const LiveTradingModule = () => {
             Monitor and control your active trading strategies
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            <Pause className="mr-2 h-4 w-4" />
-            Pause All
-          </Button>
-          <Button size="sm">
-            <Play className="mr-2 h-4 w-4" />
-            Start All
-          </Button>
-        </div>
+        <Button 
+          variant="destructive" 
+          size="sm"
+          onClick={emergencyPauseAllTrades}
+        >
+          <Pause className="mr-2 h-4 w-4" />
+          Emergency Pause All Trades
+        </Button>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {/* Active Strategy Card 1 */}
-        <Card>
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-xl">Moving Average Crossover</CardTitle>
-              <Badge className="bg-green-500">Running</Badge>
-            </div>
-            <CardDescription>BTC/USD • 15 minute chart</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Today's P/L</p>
-                  <p className="text-lg font-semibold text-green-500">+$312.45</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Active Since</p>
-                  <p className="text-lg font-semibold">2 days</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Open Positions</p>
-                  <p className="text-lg font-semibold">1</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Position Size</p>
-                  <p className="text-lg font-semibold">0.5 BTC</p>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="w-full">Pause</Button>
-                <Button variant="outline" size="sm" className="w-full">Edit</Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Active Strategy Card 2 */}
-        <Card>
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-xl">RSI Counter-Trend</CardTitle>
-              <Badge className="bg-yellow-500">Warning</Badge>
-            </div>
-            <CardDescription>ETH/USD • 1 hour chart</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Today's P/L</p>
-                  <p className="text-lg font-semibold text-red-500">-$87.22</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Active Since</p>
-                  <p className="text-lg font-semibold">5 days</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Open Positions</p>
-                  <p className="text-lg font-semibold">1</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Position Size</p>
-                  <p className="text-lg font-semibold">2.5 ETH</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 p-2 bg-yellow-500/10 rounded-md">
-                <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                <p className="text-xs">Volatility exceeding threshold</p>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="w-full">Pause</Button>
-                <Button variant="outline" size="sm" className="w-full">Edit</Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Add New Strategy Card */}
-        <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center h-full py-8">
-            <div className="rounded-full bg-primary/10 p-4 mb-4">
-              <Play className="h-6 w-6 text-primary" />
-            </div>
-            <h3 className="text-xl font-medium mb-2">Deploy New Strategy</h3>
-            <p className="text-sm text-muted-foreground text-center mb-4">
-              Create and deploy a trading strategy to the live market
-            </p>
-            <Button>Start New Strategy</Button>
-          </CardContent>
-        </Card>
-      </div>
-
+      {/* Broker Connection UI */}
       <Card>
         <CardHeader>
-          <CardTitle>Market Connection Status</CardTitle>
+          <CardTitle>Broker Connection</CardTitle>
           <CardDescription>
-            Status of your connections to trading venues
+            Connect to your trading broker to execute live trades
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <FormLabel>Select Broker</FormLabel>
+                <Select 
+                  value={selectedBroker} 
+                  onValueChange={setSelectedBroker}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a broker" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="zerodha">Zerodha</SelectItem>
+                    <SelectItem value="fyers">Fyers</SelectItem>
+                    <SelectItem value="dhan">Dhan</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <FormLabel>API Key</FormLabel>
+                <Input 
+                  placeholder="Enter your API key" 
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <FormLabel>Secret Key</FormLabel>
+                <Input 
+                  placeholder="Enter your secret key" 
+                  type="password"
+                  value={secretKey}
+                  onChange={(e) => setSecretKey(e.target.value)}
+                />
+              </div>
+              
+              <Button 
+                onClick={testBrokerConnection} 
+                disabled={!selectedBroker || !apiKey || !secretKey || isTestingConnection}
+              >
+                {isTestingConnection ? (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    Testing Connection
+                  </>
+                ) : (
+                  <>
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    Test Connection
+                  </>
+                )}
+              </Button>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="rounded-md border p-4">
+                <div className="font-medium">Connection Status</div>
+                <div className="mt-2 flex items-center">
+                  <div className={`h-3 w-3 rounded-full ${brokerConnected ? 'bg-green-500' : 'bg-red-500'} mr-2`}></div>
+                  <span>{brokerConnected ? 'Connected' : 'Disconnected'}</span>
+                </div>
+                {brokerConnected && (
+                  <div className="mt-4">
+                    <div className="text-sm text-muted-foreground">Connected to: <span className="font-medium">{selectedBroker}</span></div>
+                    <div className="text-sm text-muted-foreground">Account Balance: <span className="font-medium">₹125,000.00</span></div>
+                    <div className="text-sm text-muted-foreground">Last Updated: <span className="font-medium">Just now</span></div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Live Strategy Execution Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Active Strategies</CardTitle>
+          <CardDescription>
+            Monitor and manage your running trading strategies
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Strategy Name</TableHead>
+                <TableHead>Symbol</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Today's P&L</TableHead>
+                <TableHead>Last Signal</TableHead>
+                <TableHead>Position</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow>
+                <TableCell className="font-medium">Moving Average Crossover</TableCell>
+                <TableCell>BTC/USD</TableCell>
+                <TableCell>
+                  <Badge className="bg-green-500">Running</Badge>
+                </TableCell>
+                <TableCell className="text-green-500">+$312.45</TableCell>
+                <TableCell>Buy @ $39,456.12</TableCell>
+                <TableCell>0.5 BTC Long</TableCell>
+                <TableCell>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm">
+                      <Pause className="h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" size="sm">
+                      <Info className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="font-medium">RSI Counter-Trend</TableCell>
+                <TableCell>ETH/USD</TableCell>
+                <TableCell>
+                  <Badge className="bg-yellow-500">Warning</Badge>
+                </TableCell>
+                <TableCell className="text-red-500">-$87.22</TableCell>
+                <TableCell>Sell @ $2,298.15</TableCell>
+                <TableCell>2.5 ETH Short</TableCell>
+                <TableCell>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm">
+                      <Pause className="h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" size="sm">
+                      <Info className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="font-medium">Breakout Strategy</TableCell>
+                <TableCell>AAPL</TableCell>
+                <TableCell>
+                  <Badge variant="outline">Paused</Badge>
+                </TableCell>
+                <TableCell className="text-muted-foreground">$0.00</TableCell>
+                <TableCell>None</TableCell>
+                <TableCell>No Position</TableCell>
+                <TableCell>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm">
+                      <Play className="h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" size="sm">
+                      <Trash className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Trade Monitoring UI / Heatmap */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Trade Performance Heatmap</CardTitle>
+          <CardDescription>
+            Visual overview of your trading performance
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-7 gap-2">
+            {Array.from({ length: 28 }).map((_, i) => {
+              // Randomly generate performance data
+              const value = Math.random() * 100 - 50;
+              let bgColor = 'bg-gray-200';
+              
+              if (value > 30) bgColor = 'bg-green-500';
+              else if (value > 10) bgColor = 'bg-green-300';
+              else if (value > 0) bgColor = 'bg-green-100';
+              else if (value > -10) bgColor = 'bg-red-100';
+              else if (value > -30) bgColor = 'bg-red-300';
+              else bgColor = 'bg-red-500';
+              
+              return (
+                <div key={i} className="group relative">
+                  <div 
+                    className={`${bgColor} h-12 rounded-md cursor-pointer hover:ring-2 hover:ring-primary`}
+                  ></div>
+                  <div className="absolute hidden group-hover:block bg-background border p-2 rounded-md shadow-lg z-10 -mt-1 left-1/2 transform -translate-x-1/2">
+                    <p className="text-xs font-medium">Day {i+1}</p>
+                    <p className={`text-xs ${value > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                      {value > 0 ? '+' : ''}{value.toFixed(2)}%
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Execution Logs */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Execution Logs</CardTitle>
+          <CardDescription>
+            Recent trade executions and signals
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="flex items-center justify-between p-2 border rounded-md">
-              <div className="flex items-center gap-2">
-                <div className="h-3 w-3 rounded-full bg-green-500"></div>
-                <span className="font-medium">Binance</span>
+            <div className="border-l-4 border-green-500 pl-4 py-2">
+              <div className="flex justify-between">
+                <span className="font-medium">BUY EXECUTED</span>
+                <span className="text-sm text-muted-foreground">18 minutes ago</span>
               </div>
-              <Badge variant="outline">Connected</Badge>
+              <p className="text-sm">Moving Average Crossover • BTC/USD</p>
+              <p className="text-sm text-muted-foreground">Buy 0.5 BTC @ $39,456.12</p>
             </div>
-            <div className="flex items-center justify-between p-2 border rounded-md">
-              <div className="flex items-center gap-2">
-                <div className="h-3 w-3 rounded-full bg-green-500"></div>
-                <span className="font-medium">Coinbase</span>
+
+            <div className="border-l-4 border-red-500 pl-4 py-2">
+              <div className="flex justify-between">
+                <span className="font-medium">SELL EXECUTED</span>
+                <span className="text-sm text-muted-foreground">2 hours ago</span>
               </div>
-              <Badge variant="outline">Connected</Badge>
+              <p className="text-sm">RSI Counter-Trend • ETH/USD</p>
+              <p className="text-sm text-muted-foreground">Sell 2.5 ETH @ $2,298.15</p>
             </div>
-            <div className="flex items-center justify-between p-2 border rounded-md">
-              <div className="flex items-center gap-2">
-                <div className="h-3 w-3 rounded-full bg-red-500"></div>
-                <span className="font-medium">Kraken</span>
+
+            <div className="border-l-4 border-yellow-500 pl-4 py-2">
+              <div className="flex justify-between">
+                <span className="font-medium">WARNING</span>
+                <span className="text-sm text-muted-foreground">3 hours ago</span>
               </div>
-              <Badge variant="outline">Disconnected</Badge>
+              <p className="text-sm">RSI Counter-Trend • ETH/USD</p>
+              <p className="text-sm text-muted-foreground">Volatility exceeding threshold (34.5%)</p>
+            </div>
+
+            <div className="border-l-4 border-gray-400 pl-4 py-2">
+              <div className="flex justify-between">
+                <span className="font-medium">STRATEGY PAUSED</span>
+                <span className="text-sm text-muted-foreground">Yesterday</span>
+              </div>
+              <p className="text-sm">Breakout Strategy • AAPL</p>
+              <p className="text-sm text-muted-foreground">Manually paused by user</p>
             </div>
           </div>
         </CardContent>
