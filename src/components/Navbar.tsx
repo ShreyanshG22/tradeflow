@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { cn } from '@/lib/utils';
 import { Moon, Sun, Menu, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 interface NavbarProps {
   onThemeToggle: () => void;
@@ -35,12 +36,12 @@ export function Navbar({ onThemeToggle, isDarkTheme }: NavbarProps) {
     >
       <div className="container flex items-center justify-between">
         <div className="flex items-center">
-          <a href="/" className="flex items-center gap-2">
+          <Link to="/" className="flex items-center gap-2">
             <div className="relative w-8 h-8 rounded-lg bg-primary flex items-center justify-center overflow-hidden">
               <span className="text-primary-foreground font-semibold">T</span>
             </div>
             <span className="font-semibold text-xl">TradeFlow</span>
-          </a>
+          </Link>
         </div>
 
         {/* Desktop navigation */}
@@ -56,6 +57,9 @@ export function Navbar({ onThemeToggle, isDarkTheme }: NavbarProps) {
           </a>
           <Button onClick={onThemeToggle} variant="ghost" size="icon" className="rounded-full">
             {isDarkTheme ? <Sun size={18} /> : <Moon size={18} />}
+          </Button>
+          <Button asChild variant="outline">
+            <Link to="/dashboard">Dashboard</Link>
           </Button>
           <Button asChild>
             <a href="#waitlist">Join Waitlist</a>
@@ -102,6 +106,9 @@ export function Navbar({ onThemeToggle, isDarkTheme }: NavbarProps) {
               >
                 Pricing
               </a>
+              <Button asChild variant="outline" className="w-full justify-start" onClick={() => setMobileMenuOpen(false)}>
+                <Link to="/dashboard">Dashboard</Link>
+              </Button>
               <Button asChild className="w-full">
                 <a href="#waitlist" onClick={() => setMobileMenuOpen(false)}>Join Waitlist</a>
               </Button>
