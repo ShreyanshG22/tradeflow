@@ -41,7 +41,7 @@ const Dashboard = () => {
                 </div>
                 <div className="flex gap-2">
                   <Button asChild variant="outline" size="sm" className="gap-1">
-                    <Link to="/backtest">
+                    <Link to="/backtesting">
                       <LineChart className="h-4 w-4" />
                       <span className="hidden sm:inline">Backtest</span>
                     </Link>
@@ -111,7 +111,7 @@ const AppSidebar = () => {
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild tooltip="Backtesting">
-              <Link to="/backtest">
+              <Link to="/backtesting">
                 <LineChart className="h-5 w-5" />
                 <span>Backtesting</span>
               </Link>

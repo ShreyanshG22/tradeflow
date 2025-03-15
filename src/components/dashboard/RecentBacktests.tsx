@@ -2,6 +2,7 @@
 import { ArrowRight, TrendingUp, TrendingDown } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 export function DashboardRecentBacktests() {
   const backtests = [
@@ -50,17 +51,19 @@ export function DashboardRecentBacktests() {
                   <div className="text-xs text-muted-foreground">{backtest.date}</div>
                 </div>
               </div>
-              <Button variant="outline" size="sm" className="h-8">
-                View
+              <Button variant="outline" size="sm" className="h-8" asChild>
+                <Link to="/backtesting">View</Link>
               </Button>
             </div>
           ))}
         </div>
       </CardContent>
       <CardFooter>
-        <Button variant="ghost" className="w-full justify-between">
-          <span>View all backtests</span>
-          <ArrowRight className="h-4 w-4" />
+        <Button variant="ghost" className="w-full justify-between" asChild>
+          <Link to="/backtesting">
+            <span>View all backtests</span>
+            <ArrowRight className="h-4 w-4" />
+          </Link>
         </Button>
       </CardFooter>
     </Card>
