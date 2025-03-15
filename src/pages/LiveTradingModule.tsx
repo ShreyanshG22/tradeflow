@@ -14,9 +14,9 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { toast } from "@/hooks/use-toast";
+import { Label } from "@/components/ui/label";
 
 const LiveTradingModule = () => {
   // Update the page title
@@ -84,12 +84,12 @@ const LiveTradingModule = () => {
           <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-4">
               <div className="space-y-2">
-                <FormLabel>Select Broker</FormLabel>
+                <Label htmlFor="broker-select">Select Broker</Label>
                 <Select 
                   value={selectedBroker} 
                   onValueChange={setSelectedBroker}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="broker-select">
                     <SelectValue placeholder="Select a broker" />
                   </SelectTrigger>
                   <SelectContent>
@@ -101,8 +101,9 @@ const LiveTradingModule = () => {
               </div>
               
               <div className="space-y-2">
-                <FormLabel>API Key</FormLabel>
+                <Label htmlFor="api-key">API Key</Label>
                 <Input 
+                  id="api-key"
                   placeholder="Enter your API key" 
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
@@ -110,8 +111,9 @@ const LiveTradingModule = () => {
               </div>
               
               <div className="space-y-2">
-                <FormLabel>Secret Key</FormLabel>
+                <Label htmlFor="secret-key">Secret Key</Label>
                 <Input 
+                  id="secret-key"
                   placeholder="Enter your secret key" 
                   type="password"
                   value={secretKey}
