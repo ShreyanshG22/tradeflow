@@ -47,7 +47,7 @@ const Dashboard = () => {
                     </Link>
                   </Button>
                   <Button asChild size="sm" className="gap-1">
-                    <Link to="/strategy/new">
+                    <Link to="/strategy-builder">
                       <Plus className="h-4 w-4" />
                       <span className="hidden sm:inline">New Strategy</span>
                     </Link>
@@ -62,8 +62,10 @@ const Dashboard = () => {
               </div>
 
               <div className="fixed bottom-8 right-8 flex flex-col gap-2">
-                <Button size="icon" className="rounded-full h-14 w-14 shadow-lg">
-                  <Plus className="h-6 w-6" />
+                <Button asChild size="icon" className="rounded-full h-14 w-14 shadow-lg">
+                  <Link to="/strategy-builder">
+                    <Plus className="h-6 w-6" />
+                  </Link>
                 </Button>
               </div>
             </div>
@@ -101,7 +103,7 @@ const AppSidebar = () => {
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild tooltip="Strategy Builder">
-              <Link to="/strategy">
+              <Link to="/strategy-builder">
                 <PanelLeft className="h-5 w-5" />
                 <span>Strategy Builder</span>
               </Link>

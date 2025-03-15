@@ -2,6 +2,7 @@
 import { Play, Pause, ArrowRight, CheckCircle2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 export function DashboardActiveStrategies() {
   const strategies = [
@@ -70,9 +71,11 @@ export function DashboardActiveStrategies() {
         </div>
       </CardContent>
       <CardFooter>
-        <Button variant="ghost" className="w-full justify-between">
-          <span>Manage strategies</span>
-          <ArrowRight className="h-4 w-4" />
+        <Button asChild variant="ghost" className="w-full justify-between">
+          <Link to="/strategy-builder">
+            <span>Manage strategies</span>
+            <ArrowRight className="h-4 w-4" />
+          </Link>
         </Button>
       </CardFooter>
     </Card>
