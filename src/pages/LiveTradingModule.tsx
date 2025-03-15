@@ -78,6 +78,9 @@ const LiveTradingModule = () => {
   const [maxDailyDrawdown, setMaxDailyDrawdown] = useState<number>(5000);
   const [autoLiquidateOnBreach, setAutoLiquidateOnBreach] = useState<boolean>(true);
 
+  // Trade monitoring state
+  const [activeTab, setActiveTab] = useState<string>("heatmap");
+
   // Mock strategies data
   const [strategies, setStrategies] = useState([
     {
@@ -548,7 +551,7 @@ const LiveTradingModule = () => {
                     Visual insights into your trading performance
                   </CardDescription>
                 </div>
-                <Tabs defaultValue="heatmap" className="w-[200px]">
+                <Tabs defaultValue="heatmap" value={activeTab} onValueChange={setActiveTab}>
                   <TabsList>
                     <TabsTrigger value="heatmap">Heatmap</TabsTrigger>
                     <TabsTrigger value="performance">Performance</TabsTrigger>
@@ -558,87 +561,179 @@ const LiveTradingModule = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <TabsContent value="heatmap" className="mt-0">
-                <h3 className="text-lg font-medium mb-2">P&L Heatmap</h3>
-                <div className="grid grid-cols-7 gap-2">
-                  {Array.from({ length: 28 }).map((_, i) => {
-                    // Randomly generate performance data
-                    const value = Math.random() * 100 - 50;
-                    let bgColor = 'bg-gray-200';
-                    
-                    if (value > 30) bgColor = 'bg-green-500';
-                    else if (value > 10) bgColor = 'bg-green-300';
-                    else if (value > 0) bgColor = 'bg-green-100';
-                    else if (value > -10) bgColor = 'bg-red-100';
-                    else if (value > -30) bgColor = 'bg-red-300';
-                    else bgColor = 'bg-red-500';
-                    
-                    return (
-                      <div key={i} className="group relative">
-                        <div 
-                          className={`${bgColor} h-12 rounded-md cursor-pointer hover:ring-2 hover:ring-primary`}
-                        ></div>
-                        <div className="absolute hidden group-hover:block bg-background border p-2 rounded-md shadow-lg z-10 -mt-1 left-1/2 transform -translate-x-1/2">
-                          <p className="text-xs font-medium">Day {i+1}</p>
-                          <p className={`text-xs ${value > 0 ? 'text-green-500' : 'text-red-500'}`}>
-                            {value > 0 ? '+' : ''}{value.toFixed(2)}%
-                          </p>
+              {/* Each TabsContent must be within the same Tabs component as its TabsList */}
+              <Tabs value={activeTab} className="hidden">
+                <TabsContent value="heatmap" className="mt-0">
+                  <h3 className="text-lg font-medium mb-2">P&L Heatmap</h3>
+                  <div className="grid grid-cols-7 gap-2">
+                    {Array.from({ length: 28 }).map((_, i) => {
+                      // Randomly generate performance data
+                      const value = Math.random() * 100 - 50;
+                      let bgColor = 'bg-gray-200';
+                      
+                      if (value > 30) bgColor = 'bg-green-500';
+                      else if (value > 10) bgColor = 'bg-green-300';
+                      else if (value > 0) bgColor = 'bg-green-100';
+                      else if (value > -10) bgColor = 'bg-red-100';
+                      else if (value > -30) bgColor = 'bg-red-300';
+                      else bgColor = 'bg-red-500';
+                      
+                      return (
+                        <div key={i} className="group relative">
+                          <div 
+                            className={`${bgColor} h-12 rounded-md cursor-pointer hover:ring-2 hover:ring-primary`}
+                          ></div>
+                          <div className="absolute hidden group-hover:block bg-background border p-2 rounded-md shadow-lg z-10 -mt-1 left-1/2 transform -translate-x-1/2">
+                            <p className="text-xs font-medium">Day {i+1}</p>
+                            <p className={`text-xs ${value > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                              {value > 0 ? '+' : ''}{value.toFixed(2)}%
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="performance" className="mt-0">
+                  <h3 className="text-lg font-medium mb-4">Strategy Performance</h3>
+                  <div className="h-60 bg-gray-100 rounded-md flex items-center justify-center">
+                    <p className="text-muted-foreground">Cumulative P&L chart goes here</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 mt-4">
+                    <Card>
+                      <CardContent className="pt-6">
+                        <div className="text-2xl font-bold text-green-500">+₹4,500</div>
+                        <p className="text-sm text-muted-foreground">Today's P&L</p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-6">
+                        <div className="text-2xl font-bold">75%</div>
+                        <p className="text-sm text-muted-foreground">Win Rate</p>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="alerts" className="mt-0">
+                  <h3 className="text-lg font-medium mb-4">System Alerts</h3>
+                  <div className="space-y-4">
+                    <Alert className="bg-yellow-50 border-yellow-200">
+                      <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                      <AlertTitle className="text-yellow-700">Slippage Warning</AlertTitle>
+                      <AlertDescription className="text-yellow-700">
+                        RSI Divergence strategy execution had 0.2% slippage on HDFCBANK entry.
+                      </AlertDescription>
+                    </Alert>
+                    
+                    <Alert className="bg-red-50 border-red-200">
+                      <ShieldAlert className="h-4 w-4 text-red-500" />
+                      <AlertTitle className="text-red-700">Risk Threshold Alert</AlertTitle>
+                      <AlertDescription className="text-red-700">
+                        RSI Divergence strategy approaching max loss threshold (75% reached).
+                      </AlertDescription>
+                    </Alert>
+                    
+                    <Alert className="bg-green-50 border-green-200">
+                      <Info className="h-4 w-4 text-green-500" />
+                      <AlertTitle className="text-green-700">Market Update</AlertTitle>
+                      <AlertDescription className="text-green-700">
+                        Market volatility decreasing, favorable conditions for mean reversion strategies.
+                      </AlertDescription>
+                    </Alert>
+                  </div>
+                </TabsContent>
+              </Tabs>
+
+              {/* Render content directly based on the active tab */}
+              {activeTab === "heatmap" && (
+                <div>
+                  <h3 className="text-lg font-medium mb-2">P&L Heatmap</h3>
+                  <div className="grid grid-cols-7 gap-2">
+                    {Array.from({ length: 28 }).map((_, i) => {
+                      // Randomly generate performance data
+                      const value = Math.random() * 100 - 50;
+                      let bgColor = 'bg-gray-200';
+                      
+                      if (value > 30) bgColor = 'bg-green-500';
+                      else if (value > 10) bgColor = 'bg-green-300';
+                      else if (value > 0) bgColor = 'bg-green-100';
+                      else if (value > -10) bgColor = 'bg-red-100';
+                      else if (value > -30) bgColor = 'bg-red-300';
+                      else bgColor = 'bg-red-500';
+                      
+                      return (
+                        <div key={i} className="group relative">
+                          <div 
+                            className={`${bgColor} h-12 rounded-md cursor-pointer hover:ring-2 hover:ring-primary`}
+                          ></div>
+                          <div className="absolute hidden group-hover:block bg-background border p-2 rounded-md shadow-lg z-10 -mt-1 left-1/2 transform -translate-x-1/2">
+                            <p className="text-xs font-medium">Day {i+1}</p>
+                            <p className={`text-xs ${value > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                              {value > 0 ? '+' : ''}{value.toFixed(2)}%
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </TabsContent>
+              )}
               
-              <TabsContent value="performance" className="mt-0">
-                <h3 className="text-lg font-medium mb-4">Strategy Performance</h3>
-                <div className="h-60 bg-gray-100 rounded-md flex items-center justify-center">
-                  <p className="text-muted-foreground">Cumulative P&L chart goes here</p>
+              {activeTab === "performance" && (
+                <div>
+                  <h3 className="text-lg font-medium mb-4">Strategy Performance</h3>
+                  <div className="h-60 bg-gray-100 rounded-md flex items-center justify-center">
+                    <p className="text-muted-foreground">Cumulative P&L chart goes here</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 mt-4">
+                    <Card>
+                      <CardContent className="pt-6">
+                        <div className="text-2xl font-bold text-green-500">+₹4,500</div>
+                        <p className="text-sm text-muted-foreground">Today's P&L</p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-6">
+                        <div className="text-2xl font-bold">75%</div>
+                        <p className="text-sm text-muted-foreground">Win Rate</p>
+                      </CardContent>
+                    </Card>
+                  </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4 mt-4">
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="text-2xl font-bold text-green-500">+₹4,500</div>
-                      <p className="text-sm text-muted-foreground">Today's P&L</p>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="text-2xl font-bold">75%</div>
-                      <p className="text-sm text-muted-foreground">Win Rate</p>
-                    </CardContent>
-                  </Card>
-                </div>
-              </TabsContent>
+              )}
               
-              <TabsContent value="alerts" className="mt-0">
-                <h3 className="text-lg font-medium mb-4">System Alerts</h3>
-                <div className="space-y-4">
-                  <Alert className="bg-yellow-50 border-yellow-200">
-                    <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                    <AlertTitle className="text-yellow-700">Slippage Warning</AlertTitle>
-                    <AlertDescription className="text-yellow-700">
-                      RSI Divergence strategy execution had 0.2% slippage on HDFCBANK entry.
-                    </AlertDescription>
-                  </Alert>
-                  
-                  <Alert className="bg-red-50 border-red-200">
-                    <ShieldAlert className="h-4 w-4 text-red-500" />
-                    <AlertTitle className="text-red-700">Risk Threshold Alert</AlertTitle>
-                    <AlertDescription className="text-red-700">
-                      RSI Divergence strategy approaching max loss threshold (75% reached).
-                    </AlertDescription>
-                  </Alert>
-                  
-                  <Alert className="bg-green-50 border-green-200">
-                    <Info className="h-4 w-4 text-green-500" />
-                    <AlertTitle className="text-green-700">Market Update</AlertTitle>
-                    <AlertDescription className="text-green-700">
-                      Market volatility decreasing, favorable conditions for mean reversion strategies.
-                    </AlertDescription>
-                  </Alert>
+              {activeTab === "alerts" && (
+                <div>
+                  <h3 className="text-lg font-medium mb-4">System Alerts</h3>
+                  <div className="space-y-4">
+                    <Alert className="bg-yellow-50 border-yellow-200">
+                      <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                      <AlertTitle className="text-yellow-700">Slippage Warning</AlertTitle>
+                      <AlertDescription className="text-yellow-700">
+                        RSI Divergence strategy execution had 0.2% slippage on HDFCBANK entry.
+                      </AlertDescription>
+                    </Alert>
+                    
+                    <Alert className="bg-red-50 border-red-200">
+                      <ShieldAlert className="h-4 w-4 text-red-500" />
+                      <AlertTitle className="text-red-700">Risk Threshold Alert</AlertTitle>
+                      <AlertDescription className="text-red-700">
+                        RSI Divergence strategy approaching max loss threshold (75% reached).
+                      </AlertDescription>
+                    </Alert>
+                    
+                    <Alert className="bg-green-50 border-green-200">
+                      <Info className="h-4 w-4 text-green-500" />
+                      <AlertTitle className="text-green-700">Market Update</AlertTitle>
+                      <AlertDescription className="text-green-700">
+                        Market volatility decreasing, favorable conditions for mean reversion strategies.
+                      </AlertDescription>
+                    </Alert>
+                  </div>
                 </div>
-              </TabsContent>
+              )}
             </CardContent>
           </Card>
 
