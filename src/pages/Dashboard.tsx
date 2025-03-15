@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Link } from "react-router-dom";
 import { Sidebar, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
@@ -11,6 +12,7 @@ import {
   LogOut,
   Play,
   BellRing,
+  Plus,
 } from "lucide-react";
 import { DashboardMarketOverview } from "@/components/dashboard/MarketOverview";
 import { DashboardActiveStrategies } from "@/components/dashboard/ActiveStrategies";
