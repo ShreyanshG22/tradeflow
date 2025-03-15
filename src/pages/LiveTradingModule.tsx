@@ -11,7 +11,7 @@ import {
   Info, 
   RefreshCw,
   Link,
-  LinkOff,
+  Link2Off,
   PowerOff,
   TrendingUp,
   TrendingDown,
