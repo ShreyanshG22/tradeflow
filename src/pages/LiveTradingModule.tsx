@@ -42,7 +42,9 @@ import {
   AlarmClock,
   Bookmark,
   Pencil,
-  Calendar as CalendarIcon
+  Calendar as CalendarIcon,
+  SwitchCamera,
+  CheckCircle2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -73,6 +75,8 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Separator } from "@/components/ui/separator";
 import { DashboardRecentBacktests } from "@/components/dashboard/RecentBacktests";
 import { Calendar } from "@/components/ui/calendar";
+import { HeatmapChart } from "@/components/backtesting/charts/HeatmapChart";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const LiveTradingModule = () => {
   useEffect(() => {
@@ -89,6 +93,7 @@ const LiveTradingModule = () => {
   ]);
   const [selectedStrategy, setSelectedStrategy] = useState<string>("");
   const [showStrategySelector, setShowStrategySelector] = useState(true);
+  const [showStrategyPopover, setShowStrategyPopover] = useState(false);
 
   // Strategy execution states
   const [strategyStatus, setStrategyStatus] = useState<"active" | "pending" | "stopped">("stopped");
@@ -132,7 +137,8 @@ const LiveTradingModule = () => {
       stopLoss: 18400,
       takeProfit: 18750,
       executionSpeed: "142ms",
-      slippage: "0.05%"
+      slippage: "0.05%",
+      strategy: "Momentum Breakout"
     },
     {
       id: 2, 
@@ -145,7 +151,8 @@ const LiveTradingModule = () => {
       stopLoss: 2450,
       takeProfit: 2350,
       executionSpeed: "156ms",
-      slippage: "0.08%"
+      slippage: "0.08%",
+      strategy: "Mean Reversion"
     },
     {
       id: 3, 
@@ -158,7 +165,36 @@ const LiveTradingModule = () => {
       stopLoss: 1535,
       takeProfit: 1625,
       executionSpeed: "189ms",
-      slippage: "0.03%"
+      slippage: "0.03%",
+      strategy: "Momentum Breakout"
+    },
+    {
+      id: 4, 
+      instrument: "INFY",
+      quantity: 3,
+      entryPrice: 1720,
+      currentPrice: 1755,
+      pnl: 1050,
+      type: "LONG",
+      stopLoss: 1680,
+      takeProfit: 1780,
+      executionSpeed: "163ms",
+      slippage: "0.04%",
+      strategy: "Moving Average Cross"
+    },
+    {
+      id: 5, 
+      instrument: "TCS",
+      quantity: 2,
+      entryPrice: 3680,
+      currentPrice: 3720,
+      pnl: 800,
+      type: "LONG",
+      stopLoss: 3640,
+      takeProfit: 3800,
+      executionSpeed: "148ms",
+      slippage: "0.02%",
+      strategy: "Gap & Go"
     }
   ]);
 
@@ -180,6 +216,33 @@ const LiveTradingModule = () => {
       type: "STOP_SELL",
       status: "pending",
       strategy: "Mean Reversion"
+    },
+    {
+      id: 3,
+      instrument: "BAJFINANCE",
+      quantity: 5,
+      price: 7150,
+      type: "LIMIT_BUY",
+      status: "pending",
+      strategy: "Gap & Go"
+    },
+    {
+      id: 4,
+      instrument: "ICICIBANK",
+      quantity: 10,
+      price: 950,
+      type: "LIMIT_SELL",
+      status: "pending",
+      strategy: "Volatility Arbitrage"
+    },
+    {
+      id: 5,
+      instrument: "SBIN",
+      quantity: 8,
+      price: 620,
+      type: "STOP_BUY",
+      status: "pending",
+      strategy: "Moving Average Cross"
     }
   ]);
 
@@ -240,6 +303,61 @@ const LiveTradingModule = () => {
       executionTime: "189ms",
       status: "EXECUTED",
       strategy: "Momentum Breakout"
+    },
+    {
+      id: 4,
+      timestamp: "14:12:35",
+      action: "BUY",
+      instrument: "INFY",
+      quantity: 3,
+      price: 1720,
+      executionTime: "163ms",
+      status: "EXECUTED",
+      strategy: "Moving Average Cross"
+    },
+    {
+      id: 5,
+      timestamp: "14:25:18",
+      action: "BUY",
+      instrument: "TCS",
+      quantity: 2,
+      price: 3680,
+      executionTime: "148ms",
+      status: "EXECUTED",
+      strategy: "Gap & Go"
+    },
+    {
+      id: 6,
+      timestamp: "14:38:50",
+      action: "SL_MODIFY",
+      instrument: "NIFTY50",
+      quantity: 2,
+      price: 18400,
+      executionTime: "135ms",
+      status: "EXECUTED",
+      strategy: "Momentum Breakout"
+    },
+    {
+      id: 7,
+      timestamp: "14:42:15",
+      action: "LIMIT_PLACED",
+      instrument: "BAJFINANCE",
+      quantity: 5,
+      price: 7150,
+      executionTime: "-",
+      status: "PENDING",
+      strategy: "Gap & Go"
+    },
+    {
+      id: 8,
+      timestamp: "14:55:30",
+      action: "TP_MODIFY",
+      instrument: "TCS",
+      quantity: 2,
+      price: 3800,
+      executionTime: "152ms",
+      status: "EXECUTED",
+      strategy: "Gap & Go"
     }
   ]);
 
@@ -255,6 +373,11 @@ const LiveTradingModule = () => {
     { id: 1, type: "warning", message: "NIFTY50 approaching stop loss level", time: "14:01:30" },
     { id: 2, type: "info", message: "Order executed: Buy 5 HDFCBANK at 1580", time: "13:45:11" },
     { id: 3, type: "error", message: "Execution failed: Sell 2 INFY at 1520", time: "13:30:22" },
+    { id: 4, type: "success", message: "Take profit hit: Sell 2 SBIN at 640", time: "14:10:18" },
+    { id: 5, type: "warning", message: "High volatility detected in RELIANCE", time: "14:20:36" },
+    { id: 6, type: "info", message: "Trailing stop adjusted for HDFCBANK", time: "14:35:42" },
+    { id: 7, type: "error", message: "Margin insufficient for new order", time: "14:42:15" },
+    { id: 8, type: "success", message: "Strategy profit target achieved", time: "14:55:10" },
   ]);
 
   const [brokerConnected, setBrokerConnected] = useState<boolean>(false);
@@ -264,6 +387,23 @@ const LiveTradingModule = () => {
   const [secretKey, setSecretKey] = useState<string>("");
   const [isTestingConnection, setIsTestingConnection] = useState<boolean>(false);
   const [autoReconnect, setAutoReconnect] = useState<boolean>(true);
+
+  // Performance data for the chart
+  const [performanceData, setPerformanceData] = useState([
+    { time: '09:30', value: 0 },
+    { time: '10:00', value: 320 },
+    { time: '10:30', value: 580 },
+    { time: '11:00', value: 420 },
+    { time: '11:30', value: 750 },
+    { time: '12:00', value: 680 },
+    { time: '12:30', value: 920 },
+    { time: '13:00', value: 1080 },
+    { time: '13:30', value: 850 },
+    { time: '14:00', value: 1250 },
+    { time: '14:30', value: 1500 },
+    { time: '15:00', value: 1350 },
+    { time: '15:30', value: 1800 },
+  ]);
 
   // Initialize strategy selection if URL has a strategy parameter
   useEffect(() => {
@@ -339,6 +479,22 @@ const LiveTradingModule = () => {
         variant: "default",
       });
     }, 1500);
+  };
+
+  const switchStrategy = (strategyId: string) => {
+    setSelectedStrategy(strategyId);
+    setShowStrategyPopover(false);
+    
+    // Update URL without refreshing page
+    const url = new URL(window.location.href);
+    url.searchParams.set('strategy', strategyId);
+    window.history.pushState({}, '', url);
+    
+    toast({
+      title: "Strategy Switched",
+      description: `Now monitoring ${strategies.find(s => s.id === strategyId)?.name}`,
+      variant: "default",
+    });
   };
 
   const startStrategy = () => {
@@ -461,7 +617,8 @@ const LiveTradingModule = () => {
         stopLoss: selectedOrderDirection.toUpperCase() === "BUY" ? orderPrice * 0.98 : orderPrice * 1.02,
         takeProfit: selectedOrderDirection.toUpperCase() === "BUY" ? orderPrice * 1.03 : orderPrice * 0.97,
         executionSpeed: `${Math.floor(Math.random() * 100) + 100}ms`,
-        slippage: "0.04%"
+        slippage: "0.04%",
+        strategy: strategies.find(s => s.id === selectedStrategy)?.name || ""
       };
       
       setPositions([...positions, newPosition]);
@@ -476,7 +633,7 @@ const LiveTradingModule = () => {
           price: orderPrice,
           executionTime: `${Math.floor(Math.random() * 100) + 100}ms`,
           status: "EXECUTED",
-          strategy: selectedStrategy
+          strategy: strategies.find(s => s.id === selectedStrategy)?.name || ""
         },
         ...tradeLogs
       ]);
@@ -496,6 +653,36 @@ const LiveTradingModule = () => {
   const decreaseQuantity = () => {
     if (quantity > 1) {
       setQuantity(prev => prev - 1);
+    }
+  };
+
+  // Get alert color based on type
+  const getAlertColor = (type: string) => {
+    switch (type) {
+      case "error":
+        return "bg-red-100 border-red-500 text-red-800";
+      case "warning":
+        return "bg-amber-100 border-amber-500 text-amber-800";
+      case "success":
+        return "bg-green-100 border-green-500 text-green-800";
+      case "info":
+      default:
+        return "bg-blue-100 border-blue-500 text-blue-800";
+    }
+  };
+
+  // Get alert icon based on type
+  const getAlertIcon = (type: string) => {
+    switch (type) {
+      case "error":
+        return <AlertTriangle className="h-4 w-4 text-red-500" />;
+      case "warning":
+        return <AlertTriangle className="h-4 w-4 text-amber-500" />;
+      case "success":
+        return <CheckCircle2 className="h-4 w-4 text-green-500" />;
+      case "info":
+      default:
+        return <Info className="h-4 w-4 text-blue-500" />;
     }
   };
 
@@ -548,9 +735,44 @@ const LiveTradingModule = () => {
       <div className="grid grid-cols-12 gap-3 mb-4">
         <div className="col-span-3 flex items-center gap-2">
           <div>
-            <h2 className="text-xl font-bold">
-              {strategies.find(s => s.id === selectedStrategy)?.name}
-            </h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-bold">
+                {strategies.find(s => s.id === selectedStrategy)?.name}
+              </h2>
+              <Popover open={showStrategyPopover} onOpenChange={setShowStrategyPopover}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-8 gap-1">
+                    <SwitchCamera className="h-3.5 w-3.5" />
+                    <span className="text-xs">Switch</span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-56 p-0">
+                  <div className="p-2">
+                    <h3 className="font-medium text-sm mb-1">Switch Strategy</h3>
+                    <p className="text-xs text-muted-foreground mb-2">Select another strategy to monitor</p>
+                    <div className="space-y-1 max-h-[200px] overflow-y-auto">
+                      {strategies.map(strategy => (
+                        <div 
+                          key={strategy.id}
+                          className={`flex items-center gap-2 p-2 text-sm rounded-md cursor-pointer hover:bg-muted ${
+                            strategy.id === selectedStrategy ? 'bg-muted font-medium' : ''
+                          }`}
+                          onClick={() => switchStrategy(strategy.id)}
+                        >
+                          {strategy.id === selectedStrategy && (
+                            <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                          )}
+                          {strategy.id !== selectedStrategy && (
+                            <div className="w-3.5" />
+                          )}
+                          {strategy.name}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
             <Badge className={
               strategyStatus === "active" ? "bg-green-500" : 
               strategyStatus === "pending" ? "bg-yellow-500" : 
@@ -668,6 +890,126 @@ const LiveTradingModule = () => {
           <Card>
             <CardHeader className="py-3">
               <div className="flex justify-between items-center">
+                <CardTitle className="text-lg">Execution Logs</CardTitle>
+                <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0 max-h-[400px] overflow-y-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Time</TableHead>
+                    <TableHead>Action</TableHead>
+                    <TableHead>Instrument</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {tradeLogs
+                    .filter(log => {
+                      // Filter logs for current strategy 
+                      const strategyName = strategies.find(s => s.id === selectedStrategy)?.name;
+                      return log.strategy === strategyName || log.strategy === selectedStrategy;
+                    })
+                    .map(log => (
+                    <TableRow key={log.id}>
+                      <TableCell className="text-xs">{log.timestamp}</TableCell>
+                      <TableCell>
+                        <Badge className={
+                          log.action === "BUY" ? "bg-green-500" : 
+                          log.action === "SELL" ? "bg-red-500" : 
+                          log.action.includes("SL") ? "bg-amber-500" : 
+                          log.action.includes("TP") ? "bg-blue-500" : 
+                          "bg-gray-500"
+                        }>
+                          {log.action}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-medium text-xs">{log.instrument}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <div className={`h-2 w-2 rounded-full ${
+                            log.status === "EXECUTED" ? "bg-green-500" : 
+                            log.status === "PENDING" ? "bg-amber-500" : 
+                            "bg-red-500"
+                          }`}></div>
+                          <span className="text-xs">{log.status}</span>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+            <CardFooter className="border-t py-2">
+              <Button variant="ghost" size="sm" className="text-xs h-7 w-full">
+                View All Logs
+              </Button>
+            </CardFooter>
+          </Card>
+
+          <Card>
+            <CardHeader className="py-3">
+              <CardTitle className="text-lg">Pending Orders</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0 max-h-[300px] overflow-y-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Instrument</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Price</TableHead>
+                    <TableHead></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pendingOrders
+                    .filter(order => {
+                      // Only show orders for this strategy
+                      const strategyName = strategies.find(s => s.id === selectedStrategy)?.name;
+                      return order.strategy === strategyName;
+                    })
+                    .map(order => (
+                    <TableRow key={order.id}>
+                      <TableCell className="font-medium">
+                        {order.instrument}
+                        <div className="text-xs text-muted-foreground">
+                          {order.quantity} lots
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={
+                          order.type.includes("BUY") ? "border-green-500 text-green-500" : 
+                          "border-red-500 text-red-500"
+                        }>
+                          {order.type.replace("_", " ")}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {order.price}
+                      </TableCell>
+                      <TableCell>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="h-7 w-7 p-0"
+                          onClick={() => cancelOrder(order.id)}
+                        >
+                          <Trash className="h-3 w-3" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="py-3">
+              <div className="flex justify-between items-center">
                 <CardTitle className="text-lg">Strategy Details</CardTitle>
                 <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
                   <Settings className="h-4 w-4" />
@@ -751,44 +1093,6 @@ const LiveTradingModule = () => {
                     </>
                   )}
                 </Button>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="py-3">
-              <CardTitle className="text-lg">Risk Management</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="space-y-2">
-                  <Label htmlFor="max-loss-strategy">Max Loss Per Trade (₹)</Label>
-                  <Input 
-                    id="max-loss-strategy"
-                    type="number" 
-                    value={maxLossPerStrategy}
-                    onChange={(e) => setMaxLossPerStrategy(Number(e.target.value))}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="max-daily-drawdown">Max Daily Drawdown (₹)</Label>
-                  <Input 
-                    id="max-daily-drawdown"
-                    type="number" 
-                    value={maxDailyDrawdown}
-                    onChange={(e) => setMaxDailyDrawdown(Number(e.target.value))}
-                  />
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Switch 
-                    id="auto-liquidate"
-                    checked={autoLiquidateOnBreach}
-                    onCheckedChange={setAutoLiquidateOnBreach}
-                  />
-                  <Label htmlFor="auto-liquidate">Auto-Liquidate on Breach</Label>
-                </div>
               </div>
             </CardContent>
           </Card>
@@ -892,7 +1196,13 @@ const LiveTradingModule = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {positions.map(position => (
+                  {positions
+                    .filter(position => {
+                      // Only show positions for this strategy
+                      const strategyName = strategies.find(s => s.id === selectedStrategy)?.name;
+                      return position.strategy === strategyName;
+                    })
+                    .map(position => (
                     <TableRow key={position.id}>
                       <TableCell className="font-medium">
                         {position.instrument}
@@ -944,78 +1254,102 @@ const LiveTradingModule = () => {
           
           <Card>
             <CardHeader className="py-3">
-              <CardTitle className="text-lg">Pending Orders</CardTitle>
+              <CardTitle className="text-lg">Trade Monitoring</CardTitle>
             </CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Instrument</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Price</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {pendingOrders
-                    .filter(order => {
-                      // Only show orders for this strategy
-                      const strategyName = strategies.find(s => s.id === selectedStrategy)?.name;
-                      return order.strategy === strategyName;
-                    })
-                    .map(order => (
-                    <TableRow key={order.id}>
-                      <TableCell className="font-medium">
-                        {order.instrument}
-                        <div className="text-xs text-muted-foreground">
-                          {order.quantity} lots
+            <CardContent>
+              <Tabs defaultValue="performance">
+                <TabsList className="mb-4">
+                  <TabsTrigger value="performance">Strategy Performance</TabsTrigger>
+                  <TabsTrigger value="heatmap">P&L Heatmap</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="performance" className="h-[300px]">
+                  <div className="h-full border rounded-md p-4">
+                    <div className="flex justify-between items-center mb-4">
+                      <div className="text-sm font-medium">Profit/Loss Evolution</div>
+                      <Select defaultValue="day">
+                        <SelectTrigger className="w-[120px] h-8 text-xs">
+                          <SelectValue placeholder="Timeframe" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="day">Today</SelectItem>
+                          <SelectItem value="week">This Week</SelectItem>
+                          <SelectItem value="month">This Month</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    {/* Performance Chart Visualization */}
+                    <div className="h-[220px] w-full">
+                      <div className="relative h-full">
+                        <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-xs text-muted-foreground">
+                          <div>₹2,000</div>
+                          <div>₹1,500</div>
+                          <div>₹1,000</div>
+                          <div>₹500</div>
+                          <div>₹0</div>
+                          <div>-₹500</div>
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={
-                          order.type.includes("BUY") ? "border-green-500 text-green-500" : 
-                          "border-red-500 text-red-500"
-                        }>
-                          {order.type.replace("_", " ")}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {order.price}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <div className={`h-2 w-2 rounded-full ${
-                            order.status === 'pending' ? 'bg-yellow-500' : 
-                            order.status === 'executed' ? 'bg-green-500' : 
-                            'bg-red-500'
-                          }`}></div>
-                          <span className="text-xs capitalize">{order.status}</span>
+                        
+                        <div className="absolute left-10 right-4 top-0 bottom-0">
+                          {/* Grid lines */}
+                          <div className="h-full flex flex-col justify-between">
+                            {[0, 1, 2, 3, 4, 5].map((i) => (
+                              <div key={i} className="border-b border-dashed border-gray-200 h-[16.6%]"></div>
+                            ))}
+                          </div>
+                          
+                          {/* Time labels */}
+                          <div className="absolute bottom-[-20px] left-0 right-0 flex justify-between text-xs text-muted-foreground">
+                            {['09:30', '11:00', '12:30', '14:00', '15:30'].map((time) => (
+                              <div key={time}>{time}</div>
+                            ))}
+                          </div>
+                          
+                          {/* Chart line */}
+                          <svg className="absolute inset-0 h-full w-full overflow-visible">
+                            <defs>
+                              <linearGradient id="performance-gradient" x1="0" x2="0" y1="0" y2="1">
+                                <stop offset="0%" stopColor="rgba(52, 211, 153, 0.2)" />
+                                <stop offset="100%" stopColor="rgba(52, 211, 153, 0)" />
+                              </linearGradient>
+                            </defs>
+                            
+                            {/* Area under the chart */}
+                            <path
+                              d={`M0,${200 - (performanceData[0].value / 2000) * 200} ${performanceData.map((d, i) => `L${(i / (performanceData.length - 1)) * 100}%,${200 - (d.value / 2000) * 200}`).join(' ')} L100%,200 L0,200 Z`}
+                              fill="url(#performance-gradient)"
+                            />
+                            
+                            {/* Chart line */}
+                            <path
+                              d={`M0,${200 - (performanceData[0].value / 2000) * 200} ${performanceData.map((d, i) => `L${(i / (performanceData.length - 1)) * 100}%,${200 - (d.value / 2000) * 200}`).join(' ')}`}
+                              stroke="#10b981"
+                              strokeWidth="2"
+                              fill="none"
+                            />
+                            
+                            {/* Data points */}
+                            {performanceData.map((d, i) => (
+                              <circle
+                                key={i}
+                                cx={`${(i / (performanceData.length - 1)) * 100}%`}
+                                cy={200 - (d.value / 2000) * 200}
+                                r="3"
+                                fill="#10b981"
+                              />
+                            ))}
+                          </svg>
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex">
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            className="h-7 w-7 p-0 mr-1"
-                          >
-                            <Pencil className="h-3 w-3" />
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            className="h-7 w-7 p-0"
-                            onClick={() => cancelOrder(order.id)}
-                          >
-                            <Trash className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="heatmap" className="h-[300px]">
+                  <HeatmapChart />
+                </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
           
@@ -1230,19 +1564,15 @@ const LiveTradingModule = () => {
             <CardContent>
               <div className="space-y-2">
                 {alerts.map(alert => (
-                  <Alert key={alert.id} variant={
-                    alert.type === "error" ? "destructive" : "default"
-                  } className="py-2">
+                  <div key={alert.id} className={`p-2 rounded-md border ${getAlertColor(alert.type)}`}>
                     <div className="flex items-center">
-                      {alert.type === "warning" && <AlertTriangle className="h-4 w-4 mr-2" />}
-                      {alert.type === "error" && <AlertTriangle className="h-4 w-4 mr-2" />}
-                      {alert.type === "info" && <Info className="h-4 w-4 mr-2" />}
-                      <div className="flex flex-col">
+                      {getAlertIcon(alert.type)}
+                      <div className="flex flex-col ml-2">
                         <span className="text-sm">{alert.message}</span>
-                        <span className="text-xs text-muted-foreground">{alert.time}</span>
+                        <span className="text-xs opacity-80">{alert.time}</span>
                       </div>
                     </div>
-                  </Alert>
+                  </div>
                 ))}
               </div>
             </CardContent>
@@ -1255,51 +1585,40 @@ const LiveTradingModule = () => {
           
           <Card>
             <CardHeader className="py-3">
-              <CardTitle className="text-lg">Execution Logs</CardTitle>
+              <CardTitle className="text-lg">Risk Management</CardTitle>
             </CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Time</TableHead>
-                    <TableHead>Action</TableHead>
-                    <TableHead>Instrument</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {tradeLogs
-                    .filter(log => {
-                      // Filter logs for current strategy 
-                      const strategyName = strategies.find(s => s.id === selectedStrategy)?.name;
-                      return log.strategy === strategyName || log.strategy === selectedStrategy;
-                    })
-                    .slice(0, 5)
-                    .map(log => (
-                    <TableRow key={log.id}>
-                      <TableCell className="text-xs">{log.timestamp}</TableCell>
-                      <TableCell>
-                        <Badge className={log.action === "BUY" ? "bg-green-500" : "bg-red-500"}>
-                          {log.action}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-medium text-xs">{log.instrument}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <div className="h-2 w-2 rounded-full bg-green-500"></div>
-                          <span className="text-xs">{log.status}</span>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor="max-loss-strategy">Max Loss Per Trade (₹)</Label>
+                  <Input 
+                    id="max-loss-strategy"
+                    type="number" 
+                    value={maxLossPerStrategy}
+                    onChange={(e) => setMaxLossPerStrategy(Number(e.target.value))}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="max-daily-drawdown">Max Daily Drawdown (₹)</Label>
+                  <Input 
+                    id="max-daily-drawdown"
+                    type="number" 
+                    value={maxDailyDrawdown}
+                    onChange={(e) => setMaxDailyDrawdown(Number(e.target.value))}
+                  />
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Switch 
+                    id="auto-liquidate"
+                    checked={autoLiquidateOnBreach}
+                    onCheckedChange={setAutoLiquidateOnBreach}
+                  />
+                  <Label htmlFor="auto-liquidate">Auto-Liquidate on Breach</Label>
+                </div>
+              </div>
             </CardContent>
-            <CardFooter className="border-t py-2">
-              <Button variant="ghost" size="sm" className="text-xs h-7 w-full">
-                View All Logs
-              </Button>
-            </CardFooter>
           </Card>
           
           <Card>
@@ -1426,4 +1745,3 @@ const LiveTradingModule = () => {
 };
 
 export default LiveTradingModule;
-

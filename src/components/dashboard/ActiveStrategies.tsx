@@ -8,6 +8,7 @@ export function DashboardActiveStrategies() {
   const strategies = [
     {
       id: 1,
+      strategyId: "momentum",
       name: "HDFC Bank Momentum",
       status: "active",
       profit: "+₹1,205.40",
@@ -16,6 +17,7 @@ export function DashboardActiveStrategies() {
     },
     {
       id: 2,
+      strategyId: "moving-avg",
       name: "IT Sector Swing",
       status: "active",
       profit: "+₹765.20",
@@ -24,6 +26,7 @@ export function DashboardActiveStrategies() {
     },
     {
       id: 3,
+      strategyId: "mean-reversion",
       name: "Pharma Breakout",
       status: "paused",
       profit: "-₹340.75",
@@ -72,7 +75,7 @@ export function DashboardActiveStrategies() {
       </CardContent>
       <CardFooter className="border-t pt-3">
         <Button asChild variant="ghost" className="w-full justify-between text-sm h-8">
-          <Link to="/strategy-builder">
+          <Link to="/trading">
             <span>Manage strategies</span>
             <ArrowRight className="h-4 w-4" />
           </Link>
