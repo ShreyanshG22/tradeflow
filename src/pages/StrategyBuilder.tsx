@@ -9,6 +9,7 @@ import { Save, Play, RotateCcw, Undo, Redo, Trash2, LayoutDashboard } from "luci
 import { Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { BackButton } from "@/components/BackButton";
 
 const StrategyBuilder = () => {
   const [strategyName, setStrategyName] = useState("Untitled Strategy");
@@ -35,6 +36,7 @@ const StrategyBuilder = () => {
     <div className="flex flex-col h-screen">
       <header className="border-b py-4 px-6 flex items-center justify-between bg-background">
         <div className="flex items-center gap-3">
+          <BackButton to="/dashboard" className="mr-2" />
           <div>
             <Input 
               value={strategyName} 
@@ -44,6 +46,7 @@ const StrategyBuilder = () => {
             <p className="text-sm text-muted-foreground">Strategy Builder</p>
           </div>
         </div>
+        
         <div className="flex items-center gap-2">
           <div className="flex items-center mr-3 text-sm text-muted-foreground">
             <Button variant="ghost" size="icon" className="h-8 w-8">

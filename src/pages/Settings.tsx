@@ -32,13 +32,16 @@ import {
   Gauge, 
   Webhook, 
   PanelLeft, 
-  Info
+  Info,
+  ArrowLeft
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Link } from "react-router-dom";
+import { playNotificationSound } from "@/assets/notification-sound";
 
 const Settings = () => {
   // Update the page title
@@ -48,7 +51,10 @@ const Settings = () => {
 
   const [loading, setLoading] = useState(false);
   const [activeSettingCategory, setActiveSettingCategory] = useState("account");
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => {
+    // Initialize based on document class
+    return document.documentElement.classList.contains('dark');
+  });
   const [liveNotifications, setLiveNotifications] = useState(true);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
 
@@ -75,6 +81,28 @@ const Settings = () => {
       variant: "destructive",
     });
     setConfirmDialogOpen(false);
+  };
+
+  // Theme toggle handler
+  const handleThemeToggle = (checked: boolean) => {
+    setDarkMode(checked);
+    if (checked) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  };
+
+  // Notification toggle handler with sound
+  const handleNotificationToggle = (checked: boolean) => {
+    setLiveNotifications(checked);
+    if (checked) {
+      playNotificationSound();
+      toast({
+        title: "Notifications Enabled",
+        description: "You will now receive real-time notifications.",
+      });
+    }
   };
 
   const SettingsSidebar = () => (
@@ -157,10 +185,17 @@ const Settings = () => {
 
   return (
     <div className="flex h-screen overflow-hidden">
+      {/* Back Button */}
+      <Link to="/dashboard" className="absolute top-4 left-4 z-50 md:top-6 md:left-6">
+        <Button variant="outline" size="icon" className="rounded-full">
+          <ArrowLeft size={18} />
+        </Button>
+      </Link>
+
       {/* Mobile-friendly sidebar toggle */}
       <Sheet>
         <SheetTrigger asChild>
-          <Button variant="outline" size="icon" className="md:hidden absolute top-4 left-4 z-50">
+          <Button variant="outline" size="icon" className="md:hidden absolute top-4 left-16 z-50">
             <PanelLeft size={18} />
           </Button>
         </SheetTrigger>
@@ -196,7 +231,7 @@ const Settings = () => {
               <Switch
                 id="theme-toggle"
                 checked={darkMode}
-                onCheckedChange={setDarkMode}
+                onCheckedChange={handleThemeToggle}
               />
               {darkMode ? <Moon size={18} /> : <Sun size={18} />}
             </div>
@@ -207,7 +242,7 @@ const Settings = () => {
               <Switch
                 id="notifications-toggle"
                 checked={liveNotifications}
-                onCheckedChange={setLiveNotifications}
+                onCheckedChange={handleNotificationToggle}
               />
               <Bell size={18} />
             </div>
