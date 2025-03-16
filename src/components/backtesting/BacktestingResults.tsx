@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -54,8 +55,8 @@ export function BacktestingResults({ hasResults, isRunning = false, progress = 0
   
   if (isRunning) {
     return (
-      <ScrollArea className="h-full w-full">
-        <div className="p-6 space-y-6">
+      <ScrollArea className="h-full w-full" orientation="both">
+        <div className="p-6 space-y-6 min-w-[800px]">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader className="pb-2">
@@ -130,14 +131,14 @@ export function BacktestingResults({ hasResults, isRunning = false, progress = 0
   
   return (
     <div className="h-full grid grid-cols-4">
-      <ScrollArea className="col-span-3 h-full w-full">
-        <div className="p-6 space-y-6">
+      <ScrollArea className="col-span-3 h-full w-full" orientation="both">
+        <div className="p-6 space-y-6 min-w-[800px]">
           <Tabs
             value={activeTab}
             onValueChange={setActiveTab}
             className="space-y-4"
           >
-            <TabsList>
+            <TabsList className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm">
               <TabsTrigger value="overview" className="flex gap-1.5 items-center">
                 <BarChart4 className="h-4 w-4" />
                 Overview
