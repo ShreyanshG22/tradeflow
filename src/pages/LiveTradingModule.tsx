@@ -84,7 +84,6 @@ const LiveTradingModule = () => {
     document.title = "Live Trading | TradeFlow";
   }, []);
 
-  // Strategy selection state
   const [strategies, setStrategies] = useState([
     { id: "momentum", name: "Momentum Breakout" },
     { id: "mean-reversion", name: "Mean Reversion" },
@@ -96,7 +95,6 @@ const LiveTradingModule = () => {
   const [showStrategySelector, setShowStrategySelector] = useState(true);
   const [showStrategyPopover, setShowStrategyPopover] = useState(false);
 
-  // Strategy execution states
   const [strategyStatus, setStrategyStatus] = useState<"active" | "pending" | "stopped">("stopped");
   const [selectedMarket, setSelectedMarket] = useState<string>("stocks");
   const [selectedTimeframe, setSelectedTimeframe] = useState<string>("5min");
@@ -389,7 +387,6 @@ const LiveTradingModule = () => {
   const [isTestingConnection, setIsTestingConnection] = useState<boolean>(false);
   const [autoReconnect, setAutoReconnect] = useState<boolean>(true);
 
-  // Performance data for the chart
   const [performanceData, setPerformanceData] = useState([
     { time: '09:30', value: 0 },
     { time: '10:00', value: 320 },
@@ -406,7 +403,6 @@ const LiveTradingModule = () => {
     { time: '15:30', value: 1800 },
   ]);
 
-  // Initialize strategy selection if URL has a strategy parameter
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const strategyId = params.get('strategy');
@@ -420,7 +416,6 @@ const LiveTradingModule = () => {
     }
   }, []);
   
-  // Update document title based on selected strategy
   useEffect(() => {
     if (selectedStrategy) {
       const strategy = strategies.find(s => s.id === selectedStrategy);
@@ -432,7 +427,6 @@ const LiveTradingModule = () => {
     }
   }, [selectedStrategy]);
 
-  // Handle session timer
   useEffect(() => {
     if (strategyStatus === "active" && !sessionStartTime) {
       setSessionStartTime(Date.now());
@@ -486,7 +480,6 @@ const LiveTradingModule = () => {
     setSelectedStrategy(strategyId);
     setShowStrategyPopover(false);
     
-    // Update URL without refreshing page
     const url = new URL(window.location.href);
     url.searchParams.set('strategy', strategyId);
     window.history.pushState({}, '', url);
@@ -556,7 +549,6 @@ const LiveTradingModule = () => {
       variant: "destructive",
     });
     
-    // Cancel all pending orders
     setPendingOrders([]);
   };
 
@@ -657,7 +649,6 @@ const LiveTradingModule = () => {
     }
   };
 
-  // Get alert color based on type
   const getAlertColor = (type: string) => {
     switch (type) {
       case "error":
@@ -672,7 +663,6 @@ const LiveTradingModule = () => {
     }
   };
 
-  // Get alert icon based on type
   const getAlertIcon = (type: string) => {
     switch (type) {
       case "error":
@@ -687,7 +677,6 @@ const LiveTradingModule = () => {
     }
   };
 
-  // Strategy selector dialog
   if (showStrategySelector) {
     return (
       <div className="container flex items-center justify-center h-screen">
@@ -705,7 +694,6 @@ const LiveTradingModule = () => {
                   onClick={() => {
                     setSelectedStrategy(strategy.id);
                     setShowStrategySelector(false);
-                    // Update URL without refreshing page
                     const url = new URL(window.location.href);
                     url.searchParams.set('strategy', strategy.id);
                     window.history.pushState({}, '', url);
@@ -730,7 +718,6 @@ const LiveTradingModule = () => {
     );
   }
 
-  // Main trading UI when a strategy is selected
   return (
     <div className="container p-4 mx-auto">
       <div className="grid grid-cols-12 gap-3 mb-4">
@@ -843,3 +830,12 @@ const LiveTradingModule = () => {
           </div>
         </div>
       </div>
+      
+      <div>
+        {/* Content will go here */}
+      </div>
+    </div>
+  );
+};
+
+export default LiveTradingModule;
