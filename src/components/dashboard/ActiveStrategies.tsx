@@ -66,16 +66,9 @@ export function DashboardActiveStrategies() {
                   {strategy.profit} ({strategy.percentChange})
                 </div>
               </div>
-              <div className="flex gap-1">
-                <Button variant="ghost" size="icon" className="h-7 w-7">
-                  {strategy.status === 'active' ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
-                </Button>
-                <Button asChild variant="ghost" size="icon" className="h-7 w-7">
-                  <Link to={`/trading?strategy=${strategy.strategyId}`}>
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </Link>
-                </Button>
-              </div>
+              <Button variant="ghost" size="icon" className="h-7 w-7">
+                {strategy.status === 'active' ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+              </Button>
             </div>
           ))}
         </div>
