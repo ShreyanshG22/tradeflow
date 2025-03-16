@@ -33,7 +33,7 @@ export function DashboardActiveStrategies() {
   ];
 
   return (
-    <Card className="col-span-1 md:col-span-3 lg:col-span-1 h-full flex flex-col">
+    <Card className="col-span-1 md:col-span-3 lg:col-span-1">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="space-y-1">
           <CardTitle>Active Strategies</CardTitle>
@@ -50,7 +50,7 @@ export function DashboardActiveStrategies() {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="flex-grow">
+      <CardContent>
         <div className="space-y-3">
           {strategies.map((strategy) => (
             <div key={strategy.id} className="flex items-center justify-between border-b pb-2 last:border-0 last:pb-0">

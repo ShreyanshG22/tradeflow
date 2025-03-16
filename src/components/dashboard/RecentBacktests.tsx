@@ -30,14 +30,14 @@ export function DashboardRecentBacktests() {
   ];
 
   return (
-    <Card className="col-span-1 md:col-span-3 lg:col-span-1 h-full flex flex-col">
+    <Card className="col-span-1 md:col-span-3 lg:col-span-1">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="space-y-1">
           <CardTitle>Recent Backtests</CardTitle>
           <CardDescription>Strategy performance</CardDescription>
         </div>
       </CardHeader>
-      <CardContent className="flex-grow">
+      <CardContent>
         <div className="space-y-3">
           {backtests.map((backtest) => (
             <div key={backtest.id} className="flex items-center justify-between border-b pb-2 last:border-0 last:pb-0">
