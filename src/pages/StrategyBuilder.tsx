@@ -5,7 +5,7 @@ import { StrategyBlocks } from "@/components/strategy-builder/StrategyBlocks";
 import { StrategyCanvas } from "@/components/strategy-builder/StrategyCanvas";
 import { StrategyPreview } from "@/components/strategy-builder/StrategyPreview";
 import { Button } from "@/components/ui/button";
-import { Save, Play, RotateCcw, Undo, Redo, Trash2 } from "lucide-react";
+import { Save, Play, RotateCcw, Undo, Redo, Trash2, LayoutDashboard } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -53,6 +53,13 @@ const StrategyBuilder = () => {
               <Redo className="h-4 w-4" />
             </Button>
           </div>
+          
+          <Button asChild variant="outline">
+            <Link to="/dashboard">
+              <LayoutDashboard className="mr-2 h-4 w-4" />
+              Dashboard
+            </Link>
+          </Button>
           
           <Button variant="outline" onClick={handleClearCanvas}>
             <Trash2 className="mr-2 h-4 w-4" />
