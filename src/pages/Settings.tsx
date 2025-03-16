@@ -1,6 +1,7 @@
+
 import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -366,7 +367,6 @@ const Settings = () => {
           <div className="p-6 max-w-5xl mx-auto overflow-y-auto flex-1">
             {/* Account Settings */}
             {activeSettingCategory === "account" && (
-              
               <div className="space-y-6">
                 <Card>
                   <CardHeader>
@@ -462,7 +462,6 @@ const Settings = () => {
   
             {/* API & Brokers */}
             {activeSettingCategory === "api" && (
-              
               <div className="space-y-6">
                 <Card>
                   <CardHeader>
@@ -592,7 +591,6 @@ const Settings = () => {
   
             {/* Trading Settings */}
             {activeSettingCategory === "trading" && (
-              
               <div className="space-y-6">
                 <Card>
                   <CardHeader>
@@ -718,7 +716,6 @@ const Settings = () => {
   
             {/* Notifications & Alerts */}
             {activeSettingCategory === "notifications" && (
-              
               <div className="space-y-6">
                 <Card>
                   <CardHeader>
@@ -790,4 +787,374 @@ const Settings = () => {
                         </div>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-2">
-                            <Mail
+                            <Bell className="h-4 w-4 text-muted-foreground" />
+                            <div>
+                              <Label>Push Notifications</Label>
+                              <p className="text-xs text-muted-foreground">
+                                Receive notifications within the app
+                              </p>
+                            </div>
+                          </div>
+                          <Switch id="push-notifications" defaultChecked onCheckedChange={handleInputChange} />
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* Data & Visualization Settings */}
+            {activeSettingCategory === "visualization" && (
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Chart & Data Visualization</CardTitle>
+                    <CardDescription>
+                      Configure chart appearance and data visualization preferences
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="space-y-4">
+                      <h3 className="text-sm font-medium">Chart Timeframes</h3>
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                        <Button variant="outline" className="justify-start" size="sm">
+                          <Check className="mr-2 h-4 w-4" />
+                          1min
+                        </Button>
+                        <Button variant="outline" className="justify-start" size="sm">
+                          <Check className="mr-2 h-4 w-4" />
+                          5min
+                        </Button>
+                        <Button variant="outline" className="justify-start" size="sm">
+                          <Check className="mr-2 h-4 w-4" />
+                          15min
+                        </Button>
+                        <Button variant="outline" className="justify-start" size="sm">
+                          <Check className="mr-2 h-4 w-4" />
+                          Daily
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-4 pt-4 border-t">
+                      <h3 className="text-sm font-medium">Custom Color Themes</h3>
+                      <div className="flex flex-wrap gap-3">
+                        <Toggle 
+                          variant="outline"
+                          pressed={selectedColorTheme === "light"}
+                          onClick={() => { setSelectedColorTheme("light"); handleInputChange(); }}
+                          className="flex-1 justify-center"
+                        >
+                          <Sun className="mr-2 h-4 w-4" />
+                          Light
+                        </Toggle>
+                        <Toggle 
+                          variant="outline"
+                          pressed={selectedColorTheme === "dark"}
+                          onClick={() => { setSelectedColorTheme("dark"); handleInputChange(); }}
+                          className="flex-1 justify-center"
+                        >
+                          <Moon className="mr-2 h-4 w-4" />
+                          Dark
+                        </Toggle>
+                        <Toggle 
+                          variant="outline"
+                          pressed={selectedColorTheme === "custom"}
+                          onClick={() => { setSelectedColorTheme("custom"); handleInputChange(); }}
+                          className="flex-1 justify-center"
+                        >
+                          <SettingsIcon className="mr-2 h-4 w-4" />
+                          Custom
+                        </Toggle>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-4 pt-4 border-t">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="grid-view">Grid/Heatmap View</Label>
+                          <p className="text-xs text-muted-foreground">
+                            Toggle for Portfolio & Watchlist Display
+                          </p>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Label htmlFor="grid-view" className="sr-only">Toggle Grid View</Label>
+                          <Switch 
+                            id="grid-view" 
+                            checked={gridView}
+                            onCheckedChange={(checked) => { setGridView(checked); handleInputChange(); }} 
+                          />
+                          {gridView ? <LayoutGrid size={18} /> : <Grid3X3 size={18} />}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-4 pt-4 border-t">
+                      <h3 className="text-sm font-medium">Order Book Depth</h3>
+                      <div className="space-y-2">
+                        <Label htmlFor="order-book-depth">Show Top Levels</Label>
+                        <Select defaultValue="10" onValueChange={handleInputChange}>
+                          <SelectTrigger id="order-book-depth">
+                            <SelectValue placeholder="Select order book depth" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="5">5 Levels</SelectItem>
+                            <SelectItem value="10">10 Levels</SelectItem>
+                            <SelectItem value="20">20 Levels</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* Risk Management Settings */}
+            {activeSettingCategory === "risk" && (
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Risk Management & Limits</CardTitle>
+                    <CardDescription>
+                      Configure risk parameters and trading limits
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="max-daily-loss">Max Daily Loss Limit</Label>
+                          <p className="text-xs text-muted-foreground">
+                            Auto-lock trading if hit (% of account)
+                          </p>
+                        </div>
+                        <div className="w-[100px]">
+                          <Input 
+                            id="max-daily-loss" 
+                            type="number" 
+                            defaultValue="5" 
+                            min="0.1" 
+                            max="100" 
+                            step="0.1" 
+                            onChange={handleInputChange} 
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="max-risk-per-trade">Max Risk per Trade (%)</Label>
+                          <p className="text-xs text-muted-foreground">
+                            Maximum percentage of account at risk per trade
+                          </p>
+                        </div>
+                        <div className="w-[100px]">
+                          <Input 
+                            id="max-risk-per-trade" 
+                            type="number" 
+                            defaultValue="2" 
+                            min="0.1" 
+                            max="100" 
+                            step="0.1" 
+                            onChange={handleInputChange} 
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-4 pt-4 border-t">
+                        <h3 className="text-sm font-medium">Margin Usage Warnings</h3>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="margin-warning-50">50% Margin Warning</Label>
+                            <Switch id="margin-warning-50" defaultChecked onCheckedChange={handleInputChange} />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="margin-warning-75">75% Margin Warning</Label>
+                            <Switch id="margin-warning-75" defaultChecked onCheckedChange={handleInputChange} />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="margin-warning-90">90% Margin Warning</Label>
+                            <Switch id="margin-warning-90" defaultChecked onCheckedChange={handleInputChange} />
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="pt-4 border-t">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label htmlFor="auto-hedge-mode">Auto-Hedge Mode</Label>
+                            <p className="text-xs text-muted-foreground">
+                              Enable/Disable for Risk Mitigation
+                            </p>
+                          </div>
+                          <Switch 
+                            id="auto-hedge-mode" 
+                            checked={autoHedgeMode}
+                            onCheckedChange={(checked) => { setAutoHedgeMode(checked); handleInputChange(); }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* Bottom Panel for Settings Actions */}
+            <div className="mt-8 border rounded-lg p-4 bg-background">
+              <h3 className="text-lg font-medium mb-4">Settings Management</h3>
+              
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                {/* Save & Apply Section */}
+                <Card className="bg-card">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center">
+                      <Save className="mr-2 h-4 w-4" />
+                      Save & Apply Changes
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="auto-save">Auto-Save</Label>
+                        <Switch 
+                          id="auto-save"
+                          checked={autoSave}
+                          onCheckedChange={setAutoSave}
+                        />
+                      </div>
+                      <Button 
+                        onClick={saveSettings} 
+                        className="w-full"
+                        disabled={loading || !hasUnsavedChanges}
+                      >
+                        {loading ? (
+                          <>
+                            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                            Saving...
+                          </>
+                        ) : (
+                          "Save Changes"
+                        )}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                {/* Reset Section */}
+                <Card className="bg-card">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center">
+                      <RotateCcw className="mr-2 h-4 w-4" />
+                      Reset to Default
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setResetConfirmOpen(true)} 
+                        className="w-full"
+                      >
+                        Reset Current Section
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setResetConfirmOpen(true)} 
+                        className="w-full text-destructive hover:text-destructive"
+                      >
+                        Reset All Settings
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                {/* Import/Export Section */}
+                <Card className="bg-card">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center">
+                      <FileJson className="mr-2 h-4 w-4" />
+                      Import/Export Settings
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" className="w-full">
+                            <Download className="mr-2 h-4 w-4" />
+                            Export Settings
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          <DropdownMenuItem onClick={() => exportSettings('json')}>
+                            Export as JSON
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => exportSettings('csv')}>
+                            Export as CSV
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => exportSettings('xml')}>
+                            Export as XML
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                      
+                      <Button variant="outline" className="w-full" onClick={importSettings}>
+                        <Upload className="mr-2 h-4 w-4" />
+                        Import Settings
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Reset Settings Confirmation Dialog */}
+      <Dialog open={resetConfirmOpen} onOpenChange={setResetConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reset Settings</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to reset your settings? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setResetConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={() => resetSettings('all')}>
+              Reset All
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Emergency Stop Confirmation Dialog */}
+      <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-destructive">Emergency Stop</DialogTitle>
+            <DialogDescription>
+              This will immediately halt all automated trading activities. Are you sure?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmEmergencyStop}>
+              Confirm Emergency Stop
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default Settings;
