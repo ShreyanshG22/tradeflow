@@ -10,7 +10,7 @@ const BacktestingModule = () => {
   const [isResultsReady, setIsResultsReady] = useState(false);
   const [activeTab, setActiveTab] = useState("setup");
   
-  const handleStartBacktest = () => {
+  const handleRunBacktest = () => {
     // Simulate API call delay
     setTimeout(() => {
       setIsResultsReady(true);
@@ -42,11 +42,11 @@ const BacktestingModule = () => {
           </TabsList>
           
           <TabsContent value="setup">
-            <BacktestingForm onStartBacktest={handleStartBacktest} />
+            <BacktestingForm onRunBacktest={handleRunBacktest} />
           </TabsContent>
           
           <TabsContent value="results">
-            <BacktestingResults />
+            <BacktestingResults hasResults={isResultsReady} />
           </TabsContent>
         </Tabs>
       </div>
