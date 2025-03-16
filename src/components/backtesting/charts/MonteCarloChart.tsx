@@ -6,7 +6,7 @@ import { Line, LineChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 interface MonteCarloDataPoint {
   period: number;
   actual?: number; // Make this optional since it's only added to main simulation
-  [key: string]: number | undefined; // For dynamic sim0, sim1, etc. properties
+  [key: string]: number | string | undefined; // For dynamic sim0, sim1, etc. properties and colors
 }
 
 // Generate Monte Carlo simulation data
@@ -45,7 +45,7 @@ const generateMonteCarloData = () => {
       
       // Add this equity value to the data array
       data[period][`sim${sim}`] = equity;
-      data[period][`color${sim}`] = lineColor as number;
+      data[period][`color${sim}`] = lineColor; // Now correctly typed as string
       
       // Mark the main simulation
       if (isMainSim) {
