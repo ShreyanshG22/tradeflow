@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -40,7 +41,8 @@ import {
   BellRing,
   AlarmClock,
   Bookmark,
-  Pencil
+  Pencil,
+  Calendar as CalendarIcon
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -77,8 +79,19 @@ const LiveTradingModule = () => {
     document.title = "Live Trading | TradeFlow";
   }, []);
 
-  const [selectedStrategy, setSelectedStrategy] = useState<string>("algo");
-  const [strategyStatus, setStrategyStatus] = useState<"active" | "pending" | "stopped">("active");
+  // Strategy selection state
+  const [strategies, setStrategies] = useState([
+    { id: "momentum", name: "Momentum Breakout" },
+    { id: "mean-reversion", name: "Mean Reversion" },
+    { id: "volatility", name: "Volatility Arbitrage" },
+    { id: "gap-go", name: "Gap & Go" },
+    { id: "moving-avg", name: "Moving Average Cross" }
+  ]);
+  const [selectedStrategy, setSelectedStrategy] = useState<string>("");
+  const [showStrategySelector, setShowStrategySelector] = useState(true);
+
+  // Strategy execution states
+  const [strategyStatus, setStrategyStatus] = useState<"active" | "pending" | "stopped">("stopped");
   const [selectedMarket, setSelectedMarket] = useState<string>("stocks");
   const [selectedTimeframe, setSelectedTimeframe] = useState<string>("5min");
   const [accountValue, setAccountValue] = useState<number>(125000);
@@ -86,62 +99,10 @@ const LiveTradingModule = () => {
   const [usedMargin, setUsedMargin] = useState<number>(50000);
   const [leverageLevel, setLeverageLevel] = useState<number>(2);
   const [tradingMode, setTradingMode] = useState<"paper" | "live">("paper");
-  const [sessionDuration, setSessionDuration] = useState<string>("02:45:18");
+  const [sessionDuration, setSessionDuration] = useState<string>("00:00:00");
   const [autoHedgeEnabled, setAutoHedgeEnabled] = useState<boolean>(false);
-
-  const [activeStrategies, setActiveStrategies] = useState([
-    { 
-      id: 1, 
-      name: "Momentum Breakout", 
-      status: "active", 
-      pnl: 2500, 
-      lastTrade: "10:45", 
-      riskLevel: "medium" 
-    },
-    { 
-      id: 2, 
-      name: "Mean Reversion", 
-      status: "paused", 
-      pnl: -850, 
-      lastTrade: "11:22", 
-      riskLevel: "high" 
-    },
-    { 
-      id: 3, 
-      name: "Volatility Arbitrage", 
-      status: "active", 
-      pnl: 1200, 
-      lastTrade: "09:58", 
-      riskLevel: "low" 
-    },
-  ]);
-
-  const [historicalStrategies, setHistoricalStrategies] = useState([
-    { 
-      id: 101, 
-      name: "Gap & Go", 
-      executionDate: "2023-06-15", 
-      performance: "+4.2%",
-      trades: 8
-    },
-    { 
-      id: 102, 
-      name: "Moving Average Cross", 
-      executionDate: "2023-06-12", 
-      performance: "-1.8%",
-      trades: 12
-    },
-  ]);
-
-  const [activeStrategyFilter, setActiveStrategyFilter] = useState<string>("all");
-
-  const [brokerConnected, setBrokerConnected] = useState<boolean>(false);
-  const [connectionStatus, setConnectionStatus] = useState<"connected" | "pending" | "disconnected">("disconnected");
-  const [selectedBroker, setSelectedBroker] = useState<string>("");
-  const [apiKey, setApiKey] = useState<string>("");
-  const [secretKey, setSecretKey] = useState<string>("");
-  const [isTestingConnection, setIsTestingConnection] = useState<boolean>(false);
-  const [autoReconnect, setAutoReconnect] = useState<boolean>(true);
+  const [sessionStartTime, setSessionStartTime] = useState<number | null>(null);
+  const [timerInterval, setTimerInterval] = useState<number | null>(null);
 
   const [bidOrders, setBidOrders] = useState([
     { price: 18495, volume: 125 },
@@ -296,6 +257,73 @@ const LiveTradingModule = () => {
     { id: 3, type: "error", message: "Execution failed: Sell 2 INFY at 1520", time: "13:30:22" },
   ]);
 
+  const [brokerConnected, setBrokerConnected] = useState<boolean>(false);
+  const [connectionStatus, setConnectionStatus] = useState<"connected" | "pending" | "disconnected">("disconnected");
+  const [selectedBroker, setSelectedBroker] = useState<string>("");
+  const [apiKey, setApiKey] = useState<string>("");
+  const [secretKey, setSecretKey] = useState<string>("");
+  const [isTestingConnection, setIsTestingConnection] = useState<boolean>(false);
+  const [autoReconnect, setAutoReconnect] = useState<boolean>(true);
+
+  // Initialize strategy selection if URL has a strategy parameter
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const strategyId = params.get('strategy');
+    
+    if (strategyId) {
+      const strategy = strategies.find(s => s.id === strategyId);
+      if (strategy) {
+        setSelectedStrategy(strategy.id);
+        setShowStrategySelector(false);
+      }
+    }
+  }, []);
+  
+  // Update document title based on selected strategy
+  useEffect(() => {
+    if (selectedStrategy) {
+      const strategy = strategies.find(s => s.id === selectedStrategy);
+      if (strategy) {
+        document.title = `Live Trading - ${strategy.name} | TradeFlow`;
+      }
+    } else {
+      document.title = "Live Trading | TradeFlow";
+    }
+  }, [selectedStrategy]);
+
+  // Handle session timer
+  useEffect(() => {
+    if (strategyStatus === "active" && !sessionStartTime) {
+      setSessionStartTime(Date.now());
+      
+      const interval = window.setInterval(() => {
+        if (sessionStartTime) {
+          const elapsed = Date.now() - sessionStartTime;
+          const hours = Math.floor(elapsed / 3600000).toString().padStart(2, '0');
+          const minutes = Math.floor((elapsed % 3600000) / 60000).toString().padStart(2, '0');
+          const seconds = Math.floor((elapsed % 60000) / 1000).toString().padStart(2, '0');
+          setSessionDuration(`${hours}:${minutes}:${seconds}`);
+        }
+      }, 1000);
+      
+      setTimerInterval(interval);
+    } else if (strategyStatus !== "active" && timerInterval) {
+      clearInterval(timerInterval);
+      setTimerInterval(null);
+      
+      if (strategyStatus === "stopped") {
+        setSessionStartTime(null);
+        setSessionDuration("00:00:00");
+      }
+    }
+    
+    return () => {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+      }
+    };
+  }, [strategyStatus, sessionStartTime]);
+
   const testBrokerConnection = () => {
     setIsTestingConnection(true);
     setConnectionStatus("pending");
@@ -313,34 +341,66 @@ const LiveTradingModule = () => {
     }, 1500);
   };
 
-  const toggleStrategyStatus = (id: number) => {
-    setActiveStrategies(activeStrategies.map(strategy => {
-      if (strategy.id === id) {
-        const newStatus = strategy.status === "active" ? "paused" : "active";
-        
-        toast({
-          title: `Strategy ${newStatus === "active" ? "Activated" : "Paused"}`,
-          description: `${strategy.name} has been ${newStatus === "active" ? "activated" : "paused"}.`,
-          variant: "default",
-        });
-        
-        return { ...strategy, status: newStatus };
-      }
-      return strategy;
-    }));
+  const startStrategy = () => {
+    if (!selectedStrategy) {
+      toast({
+        title: "No Strategy Selected",
+        description: "Please select a strategy to start trading.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!brokerConnected) {
+      toast({
+        title: "Broker Not Connected",
+        description: "Please connect to a broker before starting the strategy.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setStrategyStatus("active");
+    
+    toast({
+      title: "Strategy Started",
+      description: `${strategies.find(s => s.id === selectedStrategy)?.name} strategy is now active.`,
+      variant: "default",
+    });
+  };
+
+  const pauseStrategy = () => {
+    setStrategyStatus("pending");
+    
+    toast({
+      title: "Strategy Paused",
+      description: "No new trades will be taken, but existing positions remain open.",
+      variant: "default",
+    });
+  };
+
+  const stopStrategy = () => {
+    setStrategyStatus("stopped");
+    
+    toast({
+      title: "Strategy Stopped",
+      description: "All orders have been canceled. You can close positions manually.",
+      variant: "default",
+    });
   };
 
   const emergencyPauseAllTrades = () => {
     setShowKillSwitchConfirmation(false);
     setStrategyStatus("stopped");
     
-    setActiveStrategies(activeStrategies.map(strategy => ({ ...strategy, status: "paused" })));
-    
     toast({
       title: "Emergency Stop Activated",
-      description: "All trading activities have been paused.",
+      description: "All trading activities have been paused and pending orders canceled.",
       variant: "destructive",
     });
+    
+    // Cancel all pending orders
+    setPendingOrders([]);
   };
 
   const closePosition = (id: number) => {
@@ -439,37 +499,68 @@ const LiveTradingModule = () => {
     }
   };
 
-  const filterStrategies = (filter: string) => {
-    setActiveStrategyFilter(filter);
-  };
+  // Strategy selector dialog
+  if (showStrategySelector) {
+    return (
+      <div className="container flex items-center justify-center h-screen">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Select a Strategy to Trade</CardTitle>
+            <CardDescription>Choose a trading strategy to monitor and manage</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-1">
+              {strategies.map(strategy => (
+                <div 
+                  key={strategy.id}
+                  className="flex items-center justify-between p-3 rounded-md border hover:bg-muted cursor-pointer"
+                  onClick={() => {
+                    setSelectedStrategy(strategy.id);
+                    setShowStrategySelector(false);
+                    // Update URL without refreshing page
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('strategy', strategy.id);
+                    window.history.pushState({}, '', url);
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    <Play className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">{strategy.name}</span>
+                  </div>
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+          <CardFooter>
+            <Button variant="outline" className="w-full" onClick={() => window.history.back()}>
+              Back to Dashboard
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    );
+  }
 
+  // Main trading UI when a strategy is selected
   return (
     <div className="container p-4 mx-auto">
       <div className="grid grid-cols-12 gap-3 mb-4">
         <div className="col-span-3 flex items-center gap-2">
           <div>
-            <Select value={selectedStrategy} onValueChange={setSelectedStrategy}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Select Strategy" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="algo">Algorithmic</SelectItem>
-                <SelectItem value="momentum">Momentum Breakout</SelectItem>
-                <SelectItem value="mean-reversion">Mean Reversion</SelectItem>
-                <SelectItem value="volatility">Volatility Arbitrage</SelectItem>
-                <SelectItem value="manual">Manual</SelectItem>
-              </SelectContent>
-            </Select>
+            <h2 className="text-xl font-bold">
+              {strategies.find(s => s.id === selectedStrategy)?.name}
+            </h2>
+            <Badge className={
+              strategyStatus === "active" ? "bg-green-500" : 
+              strategyStatus === "pending" ? "bg-yellow-500" : 
+              "bg-red-500"
+            }>
+              {strategyStatus === "active" ? "Active" : 
+              strategyStatus === "pending" ? "Paused" : 
+              "Stopped"}
+            </Badge>
           </div>
-          <Badge className={
-            strategyStatus === "active" ? "bg-green-500" : 
-            strategyStatus === "pending" ? "bg-yellow-500" : 
-            "bg-red-500"
-          }>
-            {strategyStatus === "active" ? "Active" : 
-             strategyStatus === "pending" ? "Pending" : 
-             "Stopped"}
-          </Badge>
         </div>
         
         <div className="col-span-3">
@@ -530,130 +621,83 @@ const LiveTradingModule = () => {
         </div>
       </div>
       
+      <div className="flex gap-4 mb-4">
+        {strategyStatus === "stopped" && (
+          <Button 
+            className="bg-green-500 hover:bg-green-600" 
+            onClick={startStrategy}
+          >
+            <Play className="h-4 w-4 mr-1" />
+            Start Strategy
+          </Button>
+        )}
+        
+        {strategyStatus === "active" && (
+          <Button 
+            variant="outline" 
+            onClick={pauseStrategy}
+          >
+            <Pause className="h-4 w-4 mr-1" />
+            Pause Strategy
+          </Button>
+        )}
+        
+        {strategyStatus === "pending" && (
+          <Button 
+            className="bg-green-500 hover:bg-green-600" 
+            onClick={startStrategy}
+          >
+            <Play className="h-4 w-4 mr-1" />
+            Resume Strategy
+          </Button>
+        )}
+        
+        {(strategyStatus === "active" || strategyStatus === "pending") && (
+          <Button 
+            variant="outline" 
+            onClick={stopStrategy}
+          >
+            <PowerOff className="h-4 w-4 mr-1" />
+            Stop Strategy
+          </Button>
+        )}
+      </div>
+      
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-3 space-y-4">
           <Card>
             <CardHeader className="py-3">
               <div className="flex justify-between items-center">
-                <CardTitle className="text-lg">Active Strategies</CardTitle>
-                <div className="flex gap-1">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="h-7 w-7 p-0"
-                    onClick={() => filterStrategies("all")}
-                  >
-                    <ListFilter className="h-4 w-4" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="h-7 w-7 p-0"
-                    onClick={() => filterStrategies("profitable")}
-                  >
-                    <TrendingUp className="h-4 w-4" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="h-7 w-7 p-0"
-                    onClick={() => filterStrategies("losing")}
-                  >
-                    <TrendingDown className="h-4 w-4" />
-                  </Button>
+                <CardTitle className="text-lg">Strategy Details</CardTitle>
+                <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                  <Settings className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div>
+                  <span className="text-sm text-muted-foreground">Type:</span>
+                  <span className="text-sm ml-2">Algorithmic</span>
+                </div>
+                <div>
+                  <span className="text-sm text-muted-foreground">Market:</span>
+                  <span className="text-sm ml-2 capitalize">{selectedMarket}</span>
+                </div>
+                <div>
+                  <span className="text-sm text-muted-foreground">Timeframe:</span>
+                  <span className="text-sm ml-2">{selectedTimeframe}</span>
+                </div>
+                <div>
+                  <span className="text-sm text-muted-foreground">Risk Level:</span>
+                  <Badge variant="outline" className="ml-2">Medium</Badge>
+                </div>
+                <div>
+                  <span className="text-sm text-muted-foreground">Max Position Size:</span>
+                  <span className="text-sm ml-2">₹25,000</span>
                 </div>
               </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="space-y-1">
-                {activeStrategies.map(strategy => (
-                  <div key={strategy.id} className="flex items-center justify-between p-2 border-b hover:bg-muted/30 cursor-pointer">
-                    <div className="flex flex-col">
-                      <div className="flex items-center gap-2">
-                        <div className={`h-2 w-2 rounded-full ${
-                          strategy.status === "active" ? "bg-green-500" : 
-                          strategy.status === "paused" ? "bg-yellow-500" : 
-                          "bg-red-500"
-                        }`}></div>
-                        <span className="font-medium">{strategy.name}</span>
-                      </div>
-                      <div className="flex items-center text-xs text-muted-foreground mt-1">
-                        <Clock className="h-3 w-3 mr-1" />
-                        <span>Last trade: {strategy.lastTrade}</span>
-                        <Separator orientation="vertical" className="h-3 mx-2" />
-                        <Shield className="h-3 w-3 mr-1" />
-                        <span>Risk: {strategy.riskLevel}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-sm font-medium ${strategy.pnl >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                        {strategy.pnl >= 0 ? '+' : ''}{strategy.pnl}
-                      </span>
-                      <Button 
-                        variant="ghost"
-                        size="sm" 
-                        className="h-6 w-6 p-0"
-                        onClick={() => toggleStrategyStatus(strategy.id)}
-                      >
-                        {strategy.status === "active" ? 
-                          <Pause className="h-3 w-3" /> : 
-                          <Play className="h-3 w-3" />
-                        }
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
             </CardContent>
-            <CardFooter className="border-t py-2">
-              <Button variant="ghost" size="sm" className="text-xs h-7 w-full">
-                View All Strategies
-              </Button>
-            </CardFooter>
-          </Card>
-          
-          <Card>
-            <CardHeader className="py-3">
-              <CardTitle className="text-lg">Historical Strategies</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="space-y-1">
-                {historicalStrategies.map(strategy => (
-                  <div key={strategy.id} className="flex items-center justify-between p-2 border-b hover:bg-muted/30 cursor-pointer">
-                    <div className="flex flex-col">
-                      <div className="flex items-center gap-2">
-                        <Bookmark className="h-3 w-3" />
-                        <span className="font-medium">{strategy.name}</span>
-                      </div>
-                      <div className="flex items-center text-xs text-muted-foreground mt-1">
-                        <Calendar className="h-3 w-3 mr-1" />
-                        <span>{strategy.executionDate}</span>
-                        <Separator orientation="vertical" className="h-3 mx-2" />
-                        <BarChart className="h-3 w-3 mr-1" />
-                        <span>{strategy.trades} trades</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-sm font-medium ${strategy.performance.startsWith('+') ? 'text-green-500' : 'text-red-500'}`}>
-                        {strategy.performance}
-                      </span>
-                      <Button 
-                        variant="ghost"
-                        size="sm" 
-                        className="h-6 w-6 p-0"
-                      >
-                        <Play className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-            <CardFooter className="border-t py-2">
-              <Button variant="ghost" size="sm" className="text-xs h-7 w-full">
-                View All Historical Strategies
-              </Button>
-            </CardFooter>
           </Card>
           
           <Card>
@@ -710,13 +754,51 @@ const LiveTradingModule = () => {
               </div>
             </CardContent>
           </Card>
+          
+          <Card>
+            <CardHeader className="py-3">
+              <CardTitle className="text-lg">Risk Management</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor="max-loss-strategy">Max Loss Per Trade (₹)</Label>
+                  <Input 
+                    id="max-loss-strategy"
+                    type="number" 
+                    value={maxLossPerStrategy}
+                    onChange={(e) => setMaxLossPerStrategy(Number(e.target.value))}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="max-daily-drawdown">Max Daily Drawdown (₹)</Label>
+                  <Input 
+                    id="max-daily-drawdown"
+                    type="number" 
+                    value={maxDailyDrawdown}
+                    onChange={(e) => setMaxDailyDrawdown(Number(e.target.value))}
+                  />
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Switch 
+                    id="auto-liquidate"
+                    checked={autoLiquidateOnBreach}
+                    onCheckedChange={setAutoLiquidateOnBreach}
+                  />
+                  <Label htmlFor="auto-liquidate">Auto-Liquidate on Breach</Label>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
         
         <div className="col-span-6 space-y-4">
           <Card>
             <CardHeader className="py-3">
               <div className="flex justify-between items-center">
-                <CardTitle className="text-lg">Strategy Execution Metrics</CardTitle>
+                <CardTitle className="text-lg">Strategy Performance</CardTitle>
                 <Button variant="outline" size="sm" className="h-8">
                   <RefreshCw className="h-3 w-3 mr-1" />
                   Refresh
@@ -869,7 +951,6 @@ const LiveTradingModule = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Instrument</TableHead>
-                    <TableHead>Strategy</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead>Price</TableHead>
                     <TableHead>Status</TableHead>
@@ -877,16 +958,19 @@ const LiveTradingModule = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {pendingOrders.map(order => (
+                  {pendingOrders
+                    .filter(order => {
+                      // Only show orders for this strategy
+                      const strategyName = strategies.find(s => s.id === selectedStrategy)?.name;
+                      return order.strategy === strategyName;
+                    })
+                    .map(order => (
                     <TableRow key={order.id}>
                       <TableCell className="font-medium">
                         {order.instrument}
                         <div className="text-xs text-muted-foreground">
                           {order.quantity} lots
                         </div>
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {order.strategy}
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className={
@@ -1147,9 +1231,7 @@ const LiveTradingModule = () => {
               <div className="space-y-2">
                 {alerts.map(alert => (
                   <Alert key={alert.id} variant={
-                    alert.type === "warning" ? "default" : 
-                    alert.type === "error" ? "destructive" : 
-                    "default"
+                    alert.type === "error" ? "destructive" : "default"
                   } className="py-2">
                     <div className="flex items-center">
                       {alert.type === "warning" && <AlertTriangle className="h-4 w-4 mr-2" />}
@@ -1173,44 +1255,6 @@ const LiveTradingModule = () => {
           
           <Card>
             <CardHeader className="py-3">
-              <CardTitle className="text-lg">Risk Management</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="space-y-2">
-                  <Label htmlFor="max-loss-strategy">Max Loss Per Strategy (₹)</Label>
-                  <Input 
-                    id="max-loss-strategy"
-                    type="number" 
-                    value={maxLossPerStrategy}
-                    onChange={(e) => setMaxLossPerStrategy(Number(e.target.value))}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="max-daily-drawdown">Max Daily Drawdown (₹)</Label>
-                  <Input 
-                    id="max-daily-drawdown"
-                    type="number" 
-                    value={maxDailyDrawdown}
-                    onChange={(e) => setMaxDailyDrawdown(Number(e.target.value))}
-                  />
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Switch 
-                    id="auto-liquidate"
-                    checked={autoLiquidateOnBreach}
-                    onCheckedChange={setAutoLiquidateOnBreach}
-                  />
-                  <Label htmlFor="auto-liquidate">Auto-Liquidate on Breach</Label>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="py-3">
               <CardTitle className="text-lg">Execution Logs</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
@@ -1224,7 +1268,14 @@ const LiveTradingModule = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {tradeLogs.slice(0, 5).map(log => (
+                  {tradeLogs
+                    .filter(log => {
+                      // Filter logs for current strategy 
+                      const strategyName = strategies.find(s => s.id === selectedStrategy)?.name;
+                      return log.strategy === strategyName || log.strategy === selectedStrategy;
+                    })
+                    .slice(0, 5)
+                    .map(log => (
                     <TableRow key={log.id}>
                       <TableCell className="text-xs">{log.timestamp}</TableCell>
                       <TableCell>
@@ -1249,6 +1300,41 @@ const LiveTradingModule = () => {
                 View All Logs
               </Button>
             </CardFooter>
+          </Card>
+          
+          <Card>
+            <CardHeader className="py-3">
+              <CardTitle className="text-lg">Session Summary</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Session Duration:</span>
+                  <span className="text-sm font-medium">{sessionDuration}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Total Trades:</span>
+                  <span className="text-sm font-medium">
+                    {tradeLogs.filter(log => {
+                      const strategyName = strategies.find(s => s.id === selectedStrategy)?.name;
+                      return log.strategy === strategyName || log.strategy === selectedStrategy;
+                    }).length}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Success Rate:</span>
+                  <span className="text-sm font-medium">62.5%</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Avg. Trade Duration:</span>
+                  <span className="text-sm font-medium">8m 45s</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Total Fees:</span>
+                  <span className="text-sm font-medium">₹175.50</span>
+                </div>
+              </div>
+            </CardContent>
           </Card>
         </div>
       </div>
@@ -1313,7 +1399,7 @@ const LiveTradingModule = () => {
               <AlertDescription>
                 This will immediately:
                 <ul className="list-disc pl-5 mt-2 space-y-1">
-                  <li>Pause all active strategies</li>
+                  <li>Pause this strategy</li>
                   <li>Cancel all pending orders</li>
                   <li>Emergency close all open positions at market price</li>
                 </ul>
@@ -1340,3 +1426,4 @@ const LiveTradingModule = () => {
 };
 
 export default LiveTradingModule;
+
