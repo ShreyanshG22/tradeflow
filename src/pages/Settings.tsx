@@ -1,5 +1,5 @@
-
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -32,7 +32,8 @@ import {
   Gauge, 
   Webhook, 
   PanelLeft, 
-  Info
+  Info,
+  ArrowLeft
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -178,7 +179,12 @@ const Settings = () => {
       <div className="flex-1 overflow-auto">
         {/* Top Bar */}
         <div className="border-b px-6 py-3 flex items-center justify-between bg-card">
-          <div>
+          <div className="flex items-center">
+            <Button variant="outline" size="icon" asChild className="mr-2">
+              <Link to="/dashboard">
+                <ArrowLeft className="h-4 w-4" />
+              </Link>
+            </Button>
             <h1 className="text-xl font-semibold">
               {activeSettingCategory === "account" && "Account Settings"}
               {activeSettingCategory === "api" && "API & Brokers"}
@@ -798,258 +804,4 @@ const Settings = () => {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="order-book-depth">Order Book Depth</Label>
-                      <Select defaultValue="10">
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select depth" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="5">5 Levels</SelectItem>
-                          <SelectItem value="10">10 Levels</SelectItem>
-                          <SelectItem value="20">20 Levels</SelectItem>
-                          <SelectItem value="50">50 Levels</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  
-                  <div className="pt-4">
-                    <h3 className="font-medium mb-2">Display Options</h3>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="show-grid">Show Chart Grid</Label>
-                        <Switch id="show-grid" defaultChecked />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="show-volume">Show Volume Bars</Label>
-                        <Switch id="show-volume" defaultChecked />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="show-extended-hours">Show Extended Hours (Stocks)</Label>
-                        <Switch id="show-extended-hours" />
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle>Indicator Defaults</CardTitle>
-                  <CardDescription>
-                    Set default indicators to show on charts
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Label>Moving Average (MA)</Label>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <Input id="ma-period" type="number" defaultValue="20" min="1" max="200" className="w-20" />
-                        <Switch id="show-ma" defaultChecked />
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Label>Relative Strength Index (RSI)</Label>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <Input id="rsi-period" type="number" defaultValue="14" min="1" max="50" className="w-20" />
-                        <Switch id="show-rsi" defaultChecked />
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Label>MACD</Label>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <Switch id="show-macd" />
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Label>Bollinger Bands</Label>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <Switch id="show-bollinger" />
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-          
-          {/* Risk Management Settings */}
-          {activeSettingCategory === "risk" && (
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Risk Controls</CardTitle>
-                  <CardDescription>
-                    Configure automated risk management safeguards
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 gap-6">
-                    <div className="space-y-3">
-                      <Label htmlFor="max-daily-loss">Maximum Daily Loss</Label>
-                      <div className="flex items-center gap-3">
-                        <Input id="max-daily-loss" type="number" defaultValue="5" min="0.1" max="100" step="0.1" />
-                        <span className="text-sm">% of account</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Trading will be automatically paused if this loss threshold is reached
-                      </p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Switch id="enable-max-loss" defaultChecked />
-                        <Label htmlFor="enable-max-loss" className="text-sm">Enable max loss protection</Label>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      <Label htmlFor="max-position-size">Maximum Position Size</Label>
-                      <div className="flex items-center gap-3">
-                        <Input id="max-position-size" type="number" defaultValue="10" min="0.1" max="100" step="0.1" />
-                        <span className="text-sm">% of account</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Restricts any single position from exceeding this percentage of your account
-                      </p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Switch id="enable-max-position" defaultChecked />
-                        <Label htmlFor="enable-max-position" className="text-sm">Enable position size limits</Label>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      <Label htmlFor="circuit-breaker">Circuit Breaker Threshold</Label>
-                      <div className="flex items-center gap-3">
-                        <Input id="circuit-breaker" type="number" defaultValue="15" min="1" max="100" step="1" />
-                        <span className="text-sm">% drawdown</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Automatically stops all automated trading if account equity drops this percentage from peak
-                      </p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Switch id="enable-circuit-breaker" defaultChecked />
-                        <Label htmlFor="enable-circuit-breaker" className="text-sm">Enable circuit breaker</Label>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle>Position Management</CardTitle>
-                  <CardDescription>
-                    Configure default position management settings
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="default-stop-size">Default Stop Loss</Label>
-                      <Input id="default-stop-size" type="number" defaultValue="3" min="0.1" max="50" step="0.1" />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Default stop loss percentage from entry price
-                      </p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="default-take-profit">Default Take Profit</Label>
-                      <Input id="default-take-profit" type="number" defaultValue="6" min="0.1" max="100" step="0.1" />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Default take profit percentage from entry price
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="trailing-stop">Enable Trailing Stops</Label>
-                        <p className="text-xs text-muted-foreground">
-                          Automatically adjust stop loss as price moves in your favor
-                        </p>
-                      </div>
-                      <Switch id="trailing-stop" defaultChecked />
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="partial-exits">Enable Partial Exits</Label>
-                        <p className="text-xs text-muted-foreground">
-                          Take profits in stages at different price levels
-                        </p>
-                      </div>
-                      <Switch id="partial-exits" />
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="breakeven-stops">Auto-Breakeven Stops</Label>
-                        <p className="text-xs text-muted-foreground">
-                          Automatically move stop loss to entry price after price moves in your favor
-                        </p>
-                      </div>
-                      <Switch id="breakeven-stops" defaultChecked />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-          
-          {/* Footer Controls (when no category selected) */}
-          <div className="flex items-center justify-end gap-3 mt-6 md:hidden">
-            <Button variant="outline" size="sm">
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Reset to Default
-            </Button>
-            <Button variant="outline" size="sm">
-              <Download className="mr-2 h-4 w-4" />
-              Export Settings
-            </Button>
-            <Button onClick={saveSettings} disabled={loading}>
-              {loading ? (
-                <>
-                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                "Save Changes"
-              )}
-            </Button>
-          </div>
-        </div>
-      </div>
-      
-      {/* Emergency Stop Confirmation Dialog */}
-      <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="text-destructive">Emergency Stop Confirmation</DialogTitle>
-            <DialogDescription>
-              This will immediately stop all automated trading and cancel all pending orders. Are you sure you want to continue?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={confirmEmergencyStop}>
-              Confirm Emergency Stop
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-};
-
-export default Settings;
+                      <Select defaultValue="

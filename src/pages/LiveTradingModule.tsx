@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -44,7 +43,8 @@ import {
   Pencil,
   Calendar as CalendarIcon,
   SwitchCamera,
-  CheckCircle2
+  CheckCircle2,
+  ArrowLeft
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -78,6 +78,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { HeatmapChart } from "@/components/backtesting/charts/HeatmapChart";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
+import { Link as ReactRouterLink } from "react-router-dom";
 
 const LiveTradingModule = () => {
   useEffect(() => {
@@ -732,7 +733,16 @@ const LiveTradingModule = () => {
 
   // Main trading UI when a strategy is selected
   return (
-    <div className="container p-4 mx-auto h-[calc(100vh-4rem)]">
+    <div className="container mx-auto p-6">
+      <div className="flex items-center mb-6">
+        <Button variant="outline" size="icon" asChild className="mr-2">
+          <Link to="/dashboard">
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
+        </Button>
+        <h1 className="text-3xl font-bold">Live Trading</h1>
+      </div>
+      
       <div className="grid grid-cols-12 gap-3 mb-4">
         <div className="col-span-3 flex items-center gap-2">
           <div>
@@ -888,7 +898,7 @@ const LiveTradingModule = () => {
       
       <ResizablePanelGroup
         direction="horizontal"
-        className="h-[calc(100vh-12rem)] rounded-lg border"
+        className="h-[calc(100vh-4rem)] rounded-lg border"
       >
         {/* Left Panel */}
         <ResizablePanel defaultSize={25} minSize={20}>

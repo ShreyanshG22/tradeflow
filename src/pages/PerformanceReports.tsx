@@ -30,7 +30,8 @@ import {
   Clock,
   BriefcaseBusiness,
   Settings,
-  Share2
+  Share2,
+  ArrowLeft
 } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart as ReBarChart, Bar, Legend, PieChart as RePieChart, Pie, Cell, ComposedChart, Line } from "recharts";
 import {
@@ -221,11 +222,18 @@ const PerformanceReports = () => {
           <div className="container p-4 md:p-6 space-y-6">
             {/* Top Bar Controls */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b">
-              <div>
-                <h1 className="text-3xl font-bold tracking-tight">Performance Reports</h1>
-                <p className="text-muted-foreground">
-                  Analyze your trading performance and strategy metrics
-                </p>
+              <div className="flex items-center">
+                <Button variant="outline" size="icon" asChild className="mr-2">
+                  <Link to="/dashboard">
+                    <ArrowLeft className="h-4 w-4" />
+                  </Link>
+                </Button>
+                <div>
+                  <h1 className="text-3xl font-bold tracking-tight">Performance Reports</h1>
+                  <p className="text-muted-foreground">
+                    Analyze your trading performance and strategy metrics
+                  </p>
+                </div>
               </div>
               <div className="flex flex-wrap gap-2">
                 <Select value={dateRange} onValueChange={setDateRange}>
