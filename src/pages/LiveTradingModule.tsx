@@ -42,9 +42,7 @@ import {
   AlarmClock,
   Bookmark,
   Pencil,
-  Calendar as CalendarIcon,
-  SwitchCamera,
-  RefreshCcw
+  Calendar as CalendarIcon
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -75,12 +73,8 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Separator } from "@/components/ui/separator";
 import { DashboardRecentBacktests } from "@/components/dashboard/RecentBacktests";
 import { Calendar } from "@/components/ui/calendar";
-import { useNavigate, useSearchParams } from "react-router-dom";
 
 const LiveTradingModule = () => {
-  const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
-  
   useEffect(() => {
     document.title = "Live Trading | TradeFlow";
   }, []);
@@ -95,7 +89,6 @@ const LiveTradingModule = () => {
   ]);
   const [selectedStrategy, setSelectedStrategy] = useState<string>("");
   const [showStrategySelector, setShowStrategySelector] = useState(true);
-  const [showStrategySwitchDialog, setShowStrategySwitchDialog] = useState(false);
 
   // Strategy execution states
   const [strategyStatus, setStrategyStatus] = useState<"active" | "pending" | "stopped">("stopped");
@@ -139,8 +132,7 @@ const LiveTradingModule = () => {
       stopLoss: 18400,
       takeProfit: 18750,
       executionSpeed: "142ms",
-      slippage: "0.05%",
-      strategy: "momentum"
+      slippage: "0.05%"
     },
     {
       id: 2, 
@@ -153,8 +145,7 @@ const LiveTradingModule = () => {
       stopLoss: 2450,
       takeProfit: 2350,
       executionSpeed: "156ms",
-      slippage: "0.08%",
-      strategy: "mean-reversion"
+      slippage: "0.08%"
     },
     {
       id: 3, 
@@ -167,8 +158,7 @@ const LiveTradingModule = () => {
       stopLoss: 1535,
       takeProfit: 1625,
       executionSpeed: "189ms",
-      slippage: "0.03%",
-      strategy: "momentum"
+      slippage: "0.03%"
     }
   ]);
 
@@ -253,34 +243,6 @@ const LiveTradingModule = () => {
     }
   ]);
 
-  // Example trades to display in the left panel
-  const [exampleTrades, setExampleTrades] = useState([
-    {
-      id: 101,
-      title: "Moving Average Crossover",
-      description: "Buy when 20 EMA crosses above 50 EMA",
-      signalType: "LONG",
-      winRate: "67%",
-      instrument: "NIFTY50"
-    },
-    {
-      id: 102,
-      title: "RSI Oversold Bounce",
-      description: "Buy when RSI below 30 and starts to rise",
-      signalType: "LONG",
-      winRate: "72%",
-      instrument: "RELIANCE"
-    },
-    {
-      id: 103,
-      title: "MACD Divergence",
-      description: "Sell when price makes higher high but MACD makes lower high",
-      signalType: "SHORT",
-      winRate: "65%",
-      instrument: "HDFCBANK"
-    }
-  ]);
-
   const [recentMarketTrades, setRecentMarketTrades] = useState([
     { time: "14:02:05", price: 18505, volume: 100, side: "buy" },
     { time: "14:02:01", price: 18503, volume: 75, side: "buy" },
@@ -305,7 +267,8 @@ const LiveTradingModule = () => {
 
   // Initialize strategy selection if URL has a strategy parameter
   useEffect(() => {
-    const strategyId = searchParams.get('strategy');
+    const params = new URLSearchParams(window.location.search);
+    const strategyId = params.get('strategy');
     
     if (strategyId) {
       const strategy = strategies.find(s => s.id === strategyId);
@@ -314,7 +277,7 @@ const LiveTradingModule = () => {
         setShowStrategySelector(false);
       }
     }
-  }, [searchParams]);
+  }, []);
   
   // Update document title based on selected strategy
   useEffect(() => {
@@ -376,24 +339,6 @@ const LiveTradingModule = () => {
         variant: "default",
       });
     }, 1500);
-  };
-
-  const switchStrategy = (strategyId: string) => {
-    const strategy = strategies.find(s => s.id === strategyId);
-    if (strategy) {
-      setSelectedStrategy(strategyId);
-      setShowStrategySwitchDialog(false);
-      
-      // Update URL without refreshing
-      searchParams.set('strategy', strategyId);
-      setSearchParams(searchParams);
-      
-      toast({
-        title: "Strategy Switched",
-        description: `Now trading with ${strategy.name} strategy.`,
-        variant: "default",
-      });
-    }
   };
 
   const startStrategy = () => {
@@ -516,8 +461,7 @@ const LiveTradingModule = () => {
         stopLoss: selectedOrderDirection.toUpperCase() === "BUY" ? orderPrice * 0.98 : orderPrice * 1.02,
         takeProfit: selectedOrderDirection.toUpperCase() === "BUY" ? orderPrice * 1.03 : orderPrice * 0.97,
         executionSpeed: `${Math.floor(Math.random() * 100) + 100}ms`,
-        slippage: "0.04%",
-        strategy: selectedStrategy
+        slippage: "0.04%"
       };
       
       setPositions([...positions, newPosition]);
@@ -555,26 +499,6 @@ const LiveTradingModule = () => {
     }
   };
 
-  // Filter positions for the selected strategy
-  const filteredPositions = positions.filter(position => {
-    if (!selectedStrategy) return true;
-    return position.strategy === selectedStrategy;
-  });
-
-  // Filter pending orders for the selected strategy
-  const filteredPendingOrders = pendingOrders.filter(order => {
-    if (!selectedStrategy) return true;
-    const strategyName = strategies.find(s => s.id === selectedStrategy)?.name;
-    return order.strategy === strategyName;
-  });
-  
-  // Filter trade logs for the selected strategy
-  const filteredTradeLogs = tradeLogs.filter(log => {
-    if (!selectedStrategy) return true;
-    const strategyName = strategies.find(s => s.id === selectedStrategy)?.name;
-    return log.strategy === strategyName || log.strategy === selectedStrategy;
-  });
-
   // Strategy selector dialog
   if (showStrategySelector) {
     return (
@@ -594,8 +518,9 @@ const LiveTradingModule = () => {
                     setSelectedStrategy(strategy.id);
                     setShowStrategySelector(false);
                     // Update URL without refreshing page
-                    searchParams.set('strategy', strategy.id);
-                    setSearchParams(searchParams);
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('strategy', strategy.id);
+                    window.history.pushState({}, '', url);
                   }}
                 >
                   <div className="flex items-center gap-2">
@@ -608,7 +533,7 @@ const LiveTradingModule = () => {
             </div>
           </CardContent>
           <CardFooter>
-            <Button variant="outline" className="w-full" onClick={() => navigate(-1)}>
+            <Button variant="outline" className="w-full" onClick={() => window.history.back()}>
               Back to Dashboard
             </Button>
           </CardFooter>
@@ -623,20 +548,9 @@ const LiveTradingModule = () => {
       <div className="grid grid-cols-12 gap-3 mb-4">
         <div className="col-span-3 flex items-center gap-2">
           <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-xl font-bold">
-                {strategies.find(s => s.id === selectedStrategy)?.name}
-              </h2>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-7 px-2"
-                onClick={() => setShowStrategySwitchDialog(true)}
-              >
-                <SwitchCamera className="h-3 w-3 mr-1" />
-                Switch
-              </Button>
-            </div>
+            <h2 className="text-xl font-bold">
+              {strategies.find(s => s.id === selectedStrategy)?.name}
+            </h2>
             <Badge className={
               strategyStatus === "active" ? "bg-green-500" : 
               strategyStatus === "pending" ? "bg-yellow-500" : 
@@ -841,199 +755,6 @@ const LiveTradingModule = () => {
             </CardContent>
           </Card>
           
-          {/* Manual Order Execution Card - Moved from center to left */}
-          <Card>
-            <CardHeader className="py-3">
-              <CardTitle className="text-lg">Manual Order Execution</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="space-y-2">
-                  <Label htmlFor="stock-search">Instrument</Label>
-                  <div className="relative">
-                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="stock-search"
-                      placeholder="Search for symbols..."
-                      className="pl-8"
-                      value={selectedStock}
-                      onChange={(e) => setSelectedStock(e.target.value)}
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label>Direction</Label>
-                  <ToggleGroup type="single" value={selectedOrderDirection} onValueChange={(value) => {
-                    if (value) setSelectedOrderDirection(value);
-                  }} className="justify-start w-full">
-                    <ToggleGroupItem value="buy" className="flex-1 bg-green-50 data-[state=on]:bg-green-500">Buy</ToggleGroupItem>
-                    <ToggleGroupItem value="sell" className="flex-1 bg-red-50 data-[state=on]:bg-red-500">Sell</ToggleGroupItem>
-                  </ToggleGroup>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="order-type">Order Type</Label>
-                    <Select 
-                      value={orderType} 
-                      onValueChange={setOrderType}
-                    >
-                      <SelectTrigger id="order-type">
-                        <SelectValue placeholder="Select order type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="market">Market</SelectItem>
-                        <SelectItem value="limit">Limit</SelectItem>
-                        <SelectItem value="stoploss">Stop Loss</SelectItem>
-                        <SelectItem value="oco">OCO (One Cancels Other)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="quantity">Quantity/Lots</Label>
-                    <div className="flex">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        className="rounded-r-none h-10 w-10"
-                        onClick={decreaseQuantity}
-                        disabled={quantity <= 1}
-                      >
-                        <Minus className="h-4 w-4" />
-                      </Button>
-                      <Input
-                        id="quantity"
-                        type="number"
-                        value={quantity}
-                        onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-                        className="rounded-none text-center"
-                        min={1}
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        className="rounded-l-none h-10 w-10"
-                        onClick={increaseQuantity}
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-                
-                {orderType !== "market" && (
-                  <div className="space-y-2">
-                    <Label htmlFor="price">Price</Label>
-                    <Input
-                      id="price"
-                      type="number"
-                      value={orderPrice}
-                      onChange={(e) => setOrderPrice(Number(e.target.value))}
-                    />
-                  </div>
-                )}
-                
-                <Button 
-                  className={`w-full ${selectedOrderDirection === "buy" ? "bg-green-500 hover:bg-green-600" : "bg-red-500 hover:bg-red-600"}`}
-                  disabled={!selectedStock || !orderType}
-                  onClick={() => setShowOrderConfirmation(true)}
-                >
-                  {selectedOrderDirection === "buy" ? "BUY" : "SELL"} {selectedStock || "INSTRUMENT"}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-          
-          {/* Example Trades Card - New addition */}
-          <Card>
-            <CardHeader className="py-3">
-              <CardTitle className="text-lg">Example Trade Setups</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {exampleTrades.map(trade => (
-                  <div key={trade.id} className="p-3 border rounded-md">
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium">{trade.title}</span>
-                      <Badge className={trade.signalType === "LONG" ? "bg-green-500" : "bg-red-500"}>
-                        {trade.signalType}
-                      </Badge>
-                    </div>
-                    <p className="text-xs mt-1 text-muted-foreground">{trade.description}</p>
-                    <div className="flex justify-between text-xs mt-2">
-                      <span>{trade.instrument}</span>
-                      <span>Win Rate: {trade.winRate}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-          
-          {/* Pending Orders Card - Moved from center to left */}
-          <Card>
-            <CardHeader className="py-3">
-              <CardTitle className="text-lg">Pending Orders</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Instrument</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Price</TableHead>
-                    <TableHead>Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredPendingOrders.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center py-4 text-sm text-muted-foreground">
-                        No pending orders
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredPendingOrders.map(order => (
-                      <TableRow key={order.id}>
-                        <TableCell className="font-medium">
-                          {order.instrument}
-                          <div className="text-xs text-muted-foreground">
-                            {order.quantity} lots
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className={
-                            order.type.includes("BUY") ? "border-green-500 text-green-500" : 
-                            "border-red-500 text-red-500"
-                          }>
-                            {order.type.replace("_", " ")}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {order.price}
-                        </TableCell>
-                        <TableCell>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            className="h-7 w-7 p-0"
-                            onClick={() => cancelOrder(order.id)}
-                          >
-                            <Trash className="h-3 w-3" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-          
           <Card>
             <CardHeader className="py-3">
               <CardTitle className="text-lg">Risk Management</CardTitle>
@@ -1171,59 +892,51 @@ const LiveTradingModule = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredPositions.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={8} className="text-center py-4 text-sm text-muted-foreground">
-                        No open positions for this strategy
+                  {positions.map(position => (
+                    <TableRow key={position.id}>
+                      <TableCell className="font-medium">
+                        {position.instrument}
+                        <div className="text-xs text-muted-foreground">
+                          {position.quantity} lots
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={position.type === "LONG" ? "bg-green-500" : "bg-red-500"}>
+                          {position.type}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{position.entryPrice}</TableCell>
+                      <TableCell>{position.currentPrice}</TableCell>
+                      <TableCell className={position.pnl > 0 ? "text-green-500" : "text-red-500"}>
+                        {position.pnl > 0 ? "+" : ""}{position.pnl}
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        <span className="text-red-500">SL: {position.stopLoss}</span>
+                        <span className="mx-1">|</span>
+                        <span className="text-green-500">TP: {position.takeProfit}</span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-xs">
+                          <span className="text-muted-foreground">Speed: </span>
+                          <span>{position.executionSpeed}</span>
+                        </div>
+                        <div className="text-xs">
+                          <span className="text-muted-foreground">Slip: </span>
+                          <span>{position.slippage}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="h-7 w-7 p-0"
+                          onClick={() => closePosition(position.id)}
+                        >
+                          <Trash className="h-3 w-3" />
+                        </Button>
                       </TableCell>
                     </TableRow>
-                  ) : (
-                    filteredPositions.map(position => (
-                      <TableRow key={position.id}>
-                        <TableCell className="font-medium">
-                          {position.instrument}
-                          <div className="text-xs text-muted-foreground">
-                            {position.quantity} lots
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={position.type === "LONG" ? "bg-green-500" : "bg-red-500"}>
-                            {position.type}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{position.entryPrice}</TableCell>
-                        <TableCell>{position.currentPrice}</TableCell>
-                        <TableCell className={position.pnl > 0 ? "text-green-500" : "text-red-500"}>
-                          {position.pnl > 0 ? "+" : ""}{position.pnl}
-                        </TableCell>
-                        <TableCell className="text-xs">
-                          <span className="text-red-500">SL: {position.stopLoss}</span>
-                          <span className="mx-1">|</span>
-                          <span className="text-green-500">TP: {position.takeProfit}</span>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-xs">
-                            <span className="text-muted-foreground">Speed: </span>
-                            <span>{position.executionSpeed}</span>
-                          </div>
-                          <div className="text-xs">
-                            <span className="text-muted-foreground">Slip: </span>
-                            <span>{position.slippage}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            className="h-7 w-7 p-0"
-                            onClick={() => closePosition(position.id)}
-                          >
-                            <Trash className="h-3 w-3" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
+                  ))}
                 </TableBody>
               </Table>
             </CardContent>
@@ -1231,87 +944,202 @@ const LiveTradingModule = () => {
           
           <Card>
             <CardHeader className="py-3">
-              <CardTitle className="text-lg">Execution Logs</CardTitle>
+              <CardTitle className="text-lg">Pending Orders</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Time</TableHead>
-                    <TableHead>Action</TableHead>
                     <TableHead>Instrument</TableHead>
-                    <TableHead>Qty</TableHead>
+                    <TableHead>Type</TableHead>
                     <TableHead>Price</TableHead>
-                    <TableHead>Execution</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredTradeLogs.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={7} className="text-center py-4 text-sm text-muted-foreground">
-                        No execution logs for this strategy
+                  {pendingOrders
+                    .filter(order => {
+                      // Only show orders for this strategy
+                      const strategyName = strategies.find(s => s.id === selectedStrategy)?.name;
+                      return order.strategy === strategyName;
+                    })
+                    .map(order => (
+                    <TableRow key={order.id}>
+                      <TableCell className="font-medium">
+                        {order.instrument}
+                        <div className="text-xs text-muted-foreground">
+                          {order.quantity} lots
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={
+                          order.type.includes("BUY") ? "border-green-500 text-green-500" : 
+                          "border-red-500 text-red-500"
+                        }>
+                          {order.type.replace("_", " ")}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {order.price}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <div className={`h-2 w-2 rounded-full ${
+                            order.status === 'pending' ? 'bg-yellow-500' : 
+                            order.status === 'executed' ? 'bg-green-500' : 
+                            'bg-red-500'
+                          }`}></div>
+                          <span className="text-xs capitalize">{order.status}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="h-7 w-7 p-0 mr-1"
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="h-7 w-7 p-0"
+                            onClick={() => cancelOrder(order.id)}
+                          >
+                            <Trash className="h-3 w-3" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
-                  ) : (
-                    filteredTradeLogs.map(log => (
-                      <TableRow key={log.id}>
-                        <TableCell className="text-xs">{log.timestamp}</TableCell>
-                        <TableCell>
-                          <Badge className={log.action === "BUY" ? "bg-green-500" : "bg-red-500"}>
-                            {log.action}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="font-medium text-xs">{log.instrument}</TableCell>
-                        <TableCell className="text-xs">{log.quantity}</TableCell>
-                        <TableCell className="text-xs">{log.price}</TableCell>
-                        <TableCell className="text-xs">{log.executionTime}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <div className="h-2 w-2 rounded-full bg-green-500"></div>
-                            <span className="text-xs">{log.status}</span>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
+                  ))}
                 </TableBody>
               </Table>
             </CardContent>
-            <CardFooter className="border-t py-2">
-              <Button variant="ghost" size="sm" className="text-xs h-7 w-full">
-                View All Logs
-              </Button>
-            </CardFooter>
           </Card>
           
           <Card>
             <CardHeader className="py-3">
-              <CardTitle className="text-lg">Session Summary</CardTitle>
+              <CardTitle className="text-lg">Manual Order Execution</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Session Duration:</span>
-                  <span className="text-sm font-medium">{sessionDuration}</span>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="stock-search">Instrument</Label>
+                    <div className="relative">
+                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="stock-search"
+                        placeholder="Search for symbols..."
+                        className="pl-8"
+                        value={selectedStock}
+                        onChange={(e) => setSelectedStock(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Direction</Label>
+                    <ToggleGroup type="single" value={selectedOrderDirection} onValueChange={(value) => {
+                      if (value) setSelectedOrderDirection(value);
+                    }} className="justify-start w-full">
+                      <ToggleGroupItem value="buy" className="flex-1 bg-green-50 data-[state=on]:bg-green-500">Buy</ToggleGroupItem>
+                      <ToggleGroupItem value="sell" className="flex-1 bg-red-50 data-[state=on]:bg-red-500">Sell</ToggleGroupItem>
+                    </ToggleGroup>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="order-type">Order Type</Label>
+                    <Select 
+                      value={orderType} 
+                      onValueChange={setOrderType}
+                    >
+                      <SelectTrigger id="order-type">
+                        <SelectValue placeholder="Select order type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="market">Market</SelectItem>
+                        <SelectItem value="limit">Limit</SelectItem>
+                        <SelectItem value="stoploss">Stop Loss</SelectItem>
+                        <SelectItem value="oco">OCO (One Cancels Other)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Total Trades:</span>
-                  <span className="text-sm font-medium">
-                    {filteredTradeLogs.length}
-                  </span>
+                
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="quantity">Quantity/Lots</Label>
+                    <div className="flex">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="rounded-r-none h-10 w-10"
+                        onClick={decreaseQuantity}
+                        disabled={quantity <= 1}
+                      >
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                      <Input
+                        id="quantity"
+                        type="number"
+                        value={quantity}
+                        onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                        className="rounded-none text-center"
+                        min={1}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="rounded-l-none h-10 w-10"
+                        onClick={increaseQuantity}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {orderType !== "market" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="price">Price</Label>
+                      <Input
+                        id="price"
+                        type="number"
+                        value={orderPrice}
+                        onChange={(e) => setOrderPrice(Number(e.target.value))}
+                      />
+                    </div>
+                  )}
+                  
+                  <Button 
+                    className={`w-full ${selectedOrderDirection === "buy" ? "bg-green-500 hover:bg-green-600" : "bg-red-500 hover:bg-red-600"}`}
+                    disabled={!selectedStock || !orderType}
+                    onClick={() => setShowOrderConfirmation(true)}
+                  >
+                    {selectedOrderDirection === "buy" ? "BUY" : "SELL"} {selectedStock || "INSTRUMENT"}
+                  </Button>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Success Rate:</span>
-                  <span className="text-sm font-medium">62.5%</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Avg. Trade Duration:</span>
-                  <span className="text-sm font-medium">8m 45s</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Total Fees:</span>
-                  <span className="text-sm font-medium">₹175.50</span>
+              </div>
+              
+              <div className="mt-4 p-3 bg-muted rounded-md">
+                <div className="text-sm font-medium mb-2">Position Sizing</div>
+                <div className="grid grid-cols-3 gap-2 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Risk:</span>
+                    <span className="ml-1">2%</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Est. Value:</span>
+                    <span className="ml-1">₹{(quantity * orderPrice).toLocaleString()}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Margin Req:</span>
+                    <span className="ml-1">₹{Math.round((quantity * orderPrice) / leverageLevel).toLocaleString()}</span>
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -1424,46 +1252,92 @@ const LiveTradingModule = () => {
               </Button>
             </CardFooter>
           </Card>
+          
+          <Card>
+            <CardHeader className="py-3">
+              <CardTitle className="text-lg">Execution Logs</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Time</TableHead>
+                    <TableHead>Action</TableHead>
+                    <TableHead>Instrument</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {tradeLogs
+                    .filter(log => {
+                      // Filter logs for current strategy 
+                      const strategyName = strategies.find(s => s.id === selectedStrategy)?.name;
+                      return log.strategy === strategyName || log.strategy === selectedStrategy;
+                    })
+                    .slice(0, 5)
+                    .map(log => (
+                    <TableRow key={log.id}>
+                      <TableCell className="text-xs">{log.timestamp}</TableCell>
+                      <TableCell>
+                        <Badge className={log.action === "BUY" ? "bg-green-500" : "bg-red-500"}>
+                          {log.action}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-medium text-xs">{log.instrument}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <div className="h-2 w-2 rounded-full bg-green-500"></div>
+                          <span className="text-xs">{log.status}</span>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+            <CardFooter className="border-t py-2">
+              <Button variant="ghost" size="sm" className="text-xs h-7 w-full">
+                View All Logs
+              </Button>
+            </CardFooter>
+          </Card>
+          
+          <Card>
+            <CardHeader className="py-3">
+              <CardTitle className="text-lg">Session Summary</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Session Duration:</span>
+                  <span className="text-sm font-medium">{sessionDuration}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Total Trades:</span>
+                  <span className="text-sm font-medium">
+                    {tradeLogs.filter(log => {
+                      const strategyName = strategies.find(s => s.id === selectedStrategy)?.name;
+                      return log.strategy === strategyName || log.strategy === selectedStrategy;
+                    }).length}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Success Rate:</span>
+                  <span className="text-sm font-medium">62.5%</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Avg. Trade Duration:</span>
+                  <span className="text-sm font-medium">8m 45s</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Total Fees:</span>
+                  <span className="text-sm font-medium">₹175.50</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
-      
-      {/* Strategy Switch Dialog */}
-      <Dialog open={showStrategySwitchDialog} onOpenChange={setShowStrategySwitchDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Switch Strategy</DialogTitle>
-            <DialogDescription>
-              Select a different strategy to trade. Your current strategy session will be paused.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="py-4">
-            <div className="space-y-1">
-              {strategies.map(strategy => (
-                <div 
-                  key={strategy.id}
-                  className={`flex items-center justify-between p-3 rounded-md border hover:bg-muted cursor-pointer ${strategy.id === selectedStrategy ? 'bg-muted' : ''}`}
-                  onClick={() => switchStrategy(strategy.id)}
-                >
-                  <div className="flex items-center gap-2">
-                    <Play className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">{strategy.name}</span>
-                  </div>
-                  {strategy.id === selectedStrategy && (
-                    <Badge className="bg-green-500">Active</Badge>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowStrategySwitchDialog(false)}>
-              Cancel
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
       
       <Dialog open={showOrderConfirmation} onOpenChange={setShowOrderConfirmation}>
         <DialogContent>
@@ -1552,3 +1426,4 @@ const LiveTradingModule = () => {
 };
 
 export default LiveTradingModule;
+

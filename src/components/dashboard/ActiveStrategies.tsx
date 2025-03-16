@@ -9,7 +9,6 @@ export function DashboardActiveStrategies() {
     {
       id: 1,
       name: "HDFC Bank Momentum",
-      strategyId: "momentum",
       status: "active",
       profit: "+₹1,205.40",
       percentChange: "+2.4%",
@@ -18,7 +17,6 @@ export function DashboardActiveStrategies() {
     {
       id: 2,
       name: "IT Sector Swing",
-      strategyId: "mean-reversion",
       status: "active",
       profit: "+₹765.20",
       percentChange: "+1.2%",
@@ -27,7 +25,6 @@ export function DashboardActiveStrategies() {
     {
       id: 3,
       name: "Pharma Breakout",
-      strategyId: "volatility",
       status: "paused",
       profit: "-₹340.75",
       percentChange: "-0.7%",
@@ -66,10 +63,8 @@ export function DashboardActiveStrategies() {
                   {strategy.profit} ({strategy.percentChange})
                 </div>
               </div>
-              <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
-                <Link to={`/live-trading?strategy=${strategy.strategyId}`}>
-                  {strategy.status === 'active' ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
-                </Link>
+              <Button variant="ghost" size="icon" className="h-7 w-7">
+                {strategy.status === 'active' ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
               </Button>
             </div>
           ))}
