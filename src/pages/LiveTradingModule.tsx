@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,7 @@ import {
   ExternalLink, 
   Info, 
   RefreshCw,
-  Link,
+  Link as LinkIcon,
   Link2Off,
   PowerOff,
   TrendingUp,
@@ -78,7 +79,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { HeatmapChart } from "@/components/backtesting/charts/HeatmapChart";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
-import { Link as ReactRouterLink } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 const LiveTradingModule = () => {
   useEffect(() => {
