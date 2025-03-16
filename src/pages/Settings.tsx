@@ -34,13 +34,21 @@ import {
   Webhook, 
   PanelLeft, 
   Info,
-  ArrowLeft
+  ArrowLeft,
+  Grid2X2,
+  List,
+  Percent,
+  Lock,
+  AlertTriangle,
+  ChartBar,
+  ChartPie
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Slider } from "@/components/ui/slider";
 
 const Settings = () => {
   // Update the page title
@@ -60,6 +68,8 @@ const Settings = () => {
   });
   const [liveNotifications, setLiveNotifications] = useState(true);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [gridView, setGridView] = useState(true);
+  const [autoHedgeMode, setAutoHedgeMode] = useState(false);
   
   // Audio reference for notification toggle sound
   const notificationSoundRef = useRef<HTMLAudioElement | null>(null);
@@ -796,7 +806,7 @@ const Settings = () => {
             </div>
           )}
           
-          {/* Data & Visualization */}
+          {/* Data & Visualization Settings - NEW */}
           {activeSettingCategory === "visualization" && (
             <div className="space-y-6">
               <Card>
@@ -806,7 +816,7 @@ const Settings = () => {
                     Customize how data and charts are presented
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-6">
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="chart-type">Default Chart Type</Label>
@@ -838,35 +848,294 @@ const Settings = () => {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="theme">Chart Color Theme</Label>
-                      <Select defaultValue="dark">
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select theme" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="dark">Dark</SelectItem>
-                          <SelectItem value="light">Light</SelectItem>
-                          <SelectItem value="blue">Blue</SelectItem>
-                          <SelectItem value="green">Green</SelectItem>
-                          <SelectItem value="custom">Custom</SelectItem>
-                        </SelectContent>
-                      </Select>
+                  </div>
+                  
+                  {/* Chart Timeframes */}
+                  <div className="space-y-3">
+                    <h3 className="font-medium">Chart Timeframes</h3>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Select which timeframes appear in the quick-select menu
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {["1min", "5min", "15min", "30min", "1h", "4h", "Daily", "Weekly"].map((timeframe) => (
+                        <Button 
+                          key={timeframe} 
+                          variant={["1min", "5min", "15min", "Daily"].includes(timeframe) ? "default" : "outline"} 
+                          size="sm"
+                          className="h-7 px-3 text-xs"
+                        >
+                          {timeframe}
+                        </Button>
+                      ))}
                     </div>
+                  </div>
+                  
+                  {/* Custom Color Themes */}
+                  <div className="space-y-3 pt-2 border-t">
+                    <h3 className="font-medium mt-2">Color Theme</h3>
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-3 gap-2">
+                        <Button variant="outline" size="sm" className="flex flex-col items-center p-4 h-auto">
+                          <div className="w-full h-10 bg-background border rounded-md mb-2"></div>
+                          <span className="text-xs">Light</span>
+                        </Button>
+                        <Button variant="outline" size="sm" className="flex flex-col items-center p-4 h-auto bg-accent">
+                          <div className="w-full h-10 bg-slate-800 border border-slate-700 rounded-md mb-2"></div>
+                          <span className="text-xs">Dark</span>
+                        </Button>
+                        <Button variant="outline" size="sm" className="flex flex-col items-center p-4 h-auto">
+                          <div className="w-full h-10 bg-gradient-to-r from-blue-900 to-blue-700 rounded-md mb-2"></div>
+                          <span className="text-xs">Custom</span>
+                        </Button>
+                      </div>
+                      
+                      <div className="space-y-4 mt-2">
+                        <div>
+                          <div className="flex justify-between items-center mb-1">
+                            <Label htmlFor="customize-chart">Customize Chart Colors</Label>
+                            <Badge variant="outline" className="text-xs">Pro Feature</Badge>
+                          </div>
+                          <Button variant="outline" size="sm" className="w-full text-sm">
+                            <ChartPie className="mr-2 h-4 w-4" />
+                            <span>Open Color Customization</span>
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Grid/Heatmap View */}
+                  <div className="space-y-3 pt-2 border-t">
+                    <h3 className="font-medium mt-2">Display Mode</h3>
+                    <div className="flex flex-col space-y-4">
+                      <div className="flex items-center space-x-4">
+                        <Button 
+                          variant={gridView ? "default" : "outline"} 
+                          size="sm" 
+                          className="flex items-center gap-2"
+                          onClick={() => setGridView(true)}
+                        >
+                          <Grid2X2 className="h-4 w-4" />
+                          <span>Grid View</span>
+                        </Button>
+                        <Button 
+                          variant={!gridView ? "default" : "outline"} 
+                          size="sm" 
+                          className="flex items-center gap-2"
+                          onClick={() => setGridView(false)}
+                        >
+                          <List className="h-4 w-4" />
+                          <span>List View</span>
+                        </Button>
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="heatmap-view">Heatmap Performance View</Label>
+                          <p className="text-xs text-muted-foreground">Color-code portfolio items based on performance</p>
+                        </div>
+                        <Switch id="heatmap-view" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Order Book Depth */}
+                  <div className="space-y-4 pt-2 border-t">
+                    <h3 className="font-medium mt-2">Order Book Depth</h3>
                     <div className="space-y-2">
-                      <Label htmlFor="order-book-depth">Order Book Depth</Label>
+                      <Label htmlFor="order-book-depth">Number of Visible Levels</Label>
                       <Select defaultValue="10">
                         <SelectTrigger>
                           <SelectValue placeholder="Select depth" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="5">5 Levels</SelectItem>
-                          <SelectItem value="10">10 Levels</SelectItem>
-                          <SelectItem value="15">15 Levels</SelectItem>
-                          <SelectItem value="20">20 Levels</SelectItem>
+                          <SelectItem value="5">Top 5 Levels</SelectItem>
+                          <SelectItem value="10">Top 10 Levels</SelectItem>
+                          <SelectItem value="15">Top 15 Levels</SelectItem>
+                          <SelectItem value="20">Top 20 Levels</SelectItem>
                         </SelectContent>
                       </Select>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Control how many price levels are displayed in the order book
+                      </p>
                     </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+          
+          {/* Risk Management & Limits - NEW */}
+          {activeSettingCategory === "risk" && (
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Risk Management Limits</CardTitle>
+                  <CardDescription>
+                    Configure safeguards to protect your trading capital
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Max Daily Loss Limit */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <Label htmlFor="max-daily-loss" className="flex items-center gap-2">
+                          <Percent className="h-4 w-4 text-muted-foreground" />
+                          Max Daily Loss Limit
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          Automatically lock trading if daily loss exceeds this percentage
+                        </p>
+                      </div>
+                      <div className="w-[180px]">
+                        <div className="flex gap-2 items-center">
+                          <Input id="max-daily-loss" type="number" defaultValue="5" min="0.1" max="100" step="0.1" />
+                          <span className="text-sm">%</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="flex items-center gap-2">
+                          <Lock className="h-4 w-4 text-muted-foreground" />
+                          Auto-Lock Trading When Limit Hit
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          Automatically disable new trades when daily loss limit is reached
+                        </p>
+                      </div>
+                      <Switch defaultChecked />
+                    </div>
+                  </div>
+                  
+                  {/* Max Risk per Trade */}
+                  <div className="space-y-4 pt-4 border-t">
+                    <h3 className="font-medium">Position Sizing & Risk per Trade</h3>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="max-risk-per-trade">Maximum Risk per Trade (%)</Label>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-3">
+                          <Slider
+                            defaultValue={[2]}
+                            max={10}
+                            step={0.1}
+                            className="flex-1"
+                          />
+                          <div className="w-12 flex items-center gap-1">
+                            <Input 
+                              id="max-risk-per-trade" 
+                              type="number" 
+                              defaultValue="2" 
+                              className="h-8" 
+                            />
+                            <span className="text-sm">%</span>
+                          </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Maximum percentage of account to risk on any single trade
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between mt-2">
+                      <div className="space-y-0.5">
+                        <Label>Enforce Position Size Limits</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Prevent trades that exceed your risk parameters
+                        </p>
+                      </div>
+                      <Switch defaultChecked />
+                    </div>
+                  </div>
+                  
+                  {/* Margin Usage Warning */}
+                  <div className="space-y-4 pt-4 border-t">
+                    <h3 className="font-medium">Margin Usage Warnings</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Get alerts when your margin usage exceeds these thresholds
+                    </p>
+                    
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle className="h-4 w-4 text-amber-500" />
+                          <Label>Warning Level (50%)</Label>
+                        </div>
+                        <Switch defaultChecked />
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle className="h-4 w-4 text-orange-500" />
+                          <Label>Critical Level (75%)</Label>
+                        </div>
+                        <Switch defaultChecked />
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle className="h-4 w-4 text-red-500" />
+                          <Label>Emergency Level (90%)</Label>
+                        </div>
+                        <Switch defaultChecked />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Auto-Hedge Mode */}
+                  <div className="space-y-4 pt-4 border-t">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <Label className="flex items-center gap-2">
+                          <Shield className="h-4 w-4 text-muted-foreground" />
+                          Auto-Hedge Mode
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          Automatically hedge positions when market volatility exceeds threshold
+                        </p>
+                      </div>
+                      <Switch 
+                        checked={autoHedgeMode} 
+                        onCheckedChange={setAutoHedgeMode} 
+                      />
+                    </div>
+                    
+                    {autoHedgeMode && (
+                      <div className="pl-6 space-y-3 mt-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="volatility-threshold">Volatility Threshold (%)</Label>
+                          <Input 
+                            id="volatility-threshold" 
+                            type="number" 
+                            defaultValue="2.5" 
+                            min="0.1" 
+                            max="10" 
+                            step="0.1" 
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Trigger hedging when price moves this percentage in short timeframe
+                          </p>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="hedge-instruments">Hedging Instruments</Label>
+                          <Select defaultValue="inverse">
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select hedging method" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="inverse">Inverse Positions</SelectItem>
+                              <SelectItem value="options">Options Contracts</SelectItem>
+                              <SelectItem value="futures">Futures Contracts</SelectItem>
+                              <SelectItem value="etf">Inverse ETFs</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
