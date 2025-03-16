@@ -87,13 +87,15 @@ const Dashboard = () => {
               </div>
               
               <div className="hidden lg:flex items-center gap-2">
-                <TabsList className="bg-muted/50">
-                  <TabsTrigger value="1d" onClick={() => setActiveTimeFrame("1d")}>1D</TabsTrigger>
-                  <TabsTrigger value="1w" onClick={() => setActiveTimeFrame("1w")}>1W</TabsTrigger>
-                  <TabsTrigger value="1m" onClick={() => setActiveTimeFrame("1m")}>1M</TabsTrigger>
-                  <TabsTrigger value="3m" onClick={() => setActiveTimeFrame("3m")}>3M</TabsTrigger>
-                  <TabsTrigger value="1y" onClick={() => setActiveTimeFrame("1y")}>1Y</TabsTrigger>
-                </TabsList>
+                <Tabs defaultValue={activeTimeFrame} onValueChange={setActiveTimeFrame}>
+                  <TabsList className="bg-muted/50">
+                    <TabsTrigger value="1d">1D</TabsTrigger>
+                    <TabsTrigger value="1w">1W</TabsTrigger>
+                    <TabsTrigger value="1m">1M</TabsTrigger>
+                    <TabsTrigger value="3m">3M</TabsTrigger>
+                    <TabsTrigger value="1y">1Y</TabsTrigger>
+                  </TabsList>
+                </Tabs>
               </div>
             </div>
             
@@ -449,3 +451,4 @@ const AppSidebar = () => {
 };
 
 export default Dashboard;
+
