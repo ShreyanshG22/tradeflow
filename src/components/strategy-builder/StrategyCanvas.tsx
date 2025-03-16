@@ -28,9 +28,8 @@ import { OperatorNode } from './nodes/OperatorNode';
 import { TimeframeNode } from './nodes/TimeframeNode';
 import { useToast } from '@/hooks/use-toast';
 
-// Define a type for our nodes to ensure consistency
-type CustomNode = {
-  id: string;
+// Define a type for our nodes to ensure consistency with the React Flow Node type
+type CustomNode = Node<{ label: string }> & {
   type: string;
   position: { x: number; y: number };
   data: { label: string };
@@ -84,10 +83,10 @@ const nodeTypes = {
 
 const StrategyCanvasInner = () => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [nodes, setNodes, onNodesChange] = useNodesState<CustomNode>(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-  const [undoStack, setUndoStack] = useState<Array<{nodes: Node[]; edges: Edge[]}>>([]);
-  const [redoStack, setRedoStack] = useState<Array<{nodes: Node[]; edges: Edge[]}>>([]);
+  const [undoStack, setUndoStack] = useState<Array<{nodes: CustomNode[]; edges: Edge[]}>>([]);
+  const [redoStack, setRedoStack] = useState<Array<{nodes: CustomNode[]; edges: Edge[]}>>([]);
   const [nodesToDelete, setNodesToDelete] = useState<string[]>([]);
   const reactFlowInstance = useReactFlow();
   const { toast } = useToast();
@@ -159,14 +158,14 @@ const StrategyCanvasInner = () => {
         type,
         position,
         data: { label: type.split('-').slice(1).join(' ').replace(/\b\w/g, l => l.toUpperCase()) },
-        className: '' // Add empty className to satisfy the type requirement
+        className: ''
       };
 
       // Remove the welcome node if it exists when dropping the first custom node
       if (nodes.length === 1 && nodes[0].id === 'welcome') {
         setNodes([newNode]);
       } else {
-        setNodes((nds) => nds.concat(newNode));
+        setNodes((nds) => [...nds, newNode]);
       }
     },
     [nodes, setNodes, reactFlowInstance, saveCurrentState],
