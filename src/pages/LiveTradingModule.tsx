@@ -77,6 +77,7 @@ import { DashboardRecentBacktests } from "@/components/dashboard/RecentBacktests
 import { Calendar } from "@/components/ui/calendar";
 import { HeatmapChart } from "@/components/backtesting/charts/HeatmapChart";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 
 const LiveTradingModule = () => {
   useEffect(() => {
@@ -731,7 +732,7 @@ const LiveTradingModule = () => {
 
   // Main trading UI when a strategy is selected
   return (
-    <div className="container p-4 mx-auto">
+    <div className="container p-4 mx-auto h-[calc(100vh-4rem)]">
       <div className="grid grid-cols-12 gap-3 mb-4">
         <div className="col-span-3 flex items-center gap-2">
           <div>
@@ -885,480 +886,651 @@ const LiveTradingModule = () => {
         )}
       </div>
       
-      <div className="grid grid-cols-12 gap-4">
-        <div className="col-span-3 space-y-4">
-          <Card>
-            <CardHeader className="py-3">
-              <div className="flex justify-between items-center">
-                <CardTitle className="text-lg">Execution Logs</CardTitle>
-                <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                  <RefreshCw className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0 max-h-[400px] overflow-y-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Time</TableHead>
-                    <TableHead>Action</TableHead>
-                    <TableHead>Instrument</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {tradeLogs
-                    .filter(log => {
-                      // Filter logs for current strategy 
-                      const strategyName = strategies.find(s => s.id === selectedStrategy)?.name;
-                      return log.strategy === strategyName || log.strategy === selectedStrategy;
-                    })
-                    .map(log => (
-                    <TableRow key={log.id}>
-                      <TableCell className="text-xs">{log.timestamp}</TableCell>
-                      <TableCell>
-                        <Badge className={
-                          log.action === "BUY" ? "bg-green-500" : 
-                          log.action === "SELL" ? "bg-red-500" : 
-                          log.action.includes("SL") ? "bg-amber-500" : 
-                          log.action.includes("TP") ? "bg-blue-500" : 
-                          "bg-gray-500"
-                        }>
-                          {log.action}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-medium text-xs">{log.instrument}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <div className={`h-2 w-2 rounded-full ${
-                            log.status === "EXECUTED" ? "bg-green-500" : 
-                            log.status === "PENDING" ? "bg-amber-500" : 
-                            "bg-red-500"
-                          }`}></div>
-                          <span className="text-xs">{log.status}</span>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-            <CardFooter className="border-t py-2">
-              <Button variant="ghost" size="sm" className="text-xs h-7 w-full">
-                View All Logs
-              </Button>
-            </CardFooter>
-          </Card>
-
-          <Card>
-            <CardHeader className="py-3">
-              <CardTitle className="text-lg">Pending Orders</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0 max-h-[300px] overflow-y-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Instrument</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Price</TableHead>
-                    <TableHead></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {pendingOrders
-                    .filter(order => {
-                      // Only show orders for this strategy
-                      const strategyName = strategies.find(s => s.id === selectedStrategy)?.name;
-                      return order.strategy === strategyName;
-                    })
-                    .map(order => (
-                    <TableRow key={order.id}>
-                      <TableCell className="font-medium">
-                        {order.instrument}
-                        <div className="text-xs text-muted-foreground">
-                          {order.quantity} lots
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={
-                          order.type.includes("BUY") ? "border-green-500 text-green-500" : 
-                          "border-red-500 text-red-500"
-                        }>
-                          {order.type.replace("_", " ")}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {order.price}
-                      </TableCell>
-                      <TableCell>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          className="h-7 w-7 p-0"
-                          onClick={() => cancelOrder(order.id)}
-                        >
-                          <Trash className="h-3 w-3" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="py-3">
-              <div className="flex justify-between items-center">
-                <CardTitle className="text-lg">Strategy Details</CardTitle>
-                <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                  <Settings className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div>
-                  <span className="text-sm text-muted-foreground">Type:</span>
-                  <span className="text-sm ml-2">Algorithmic</span>
+      <ResizablePanelGroup
+        direction="horizontal"
+        className="h-[calc(100vh-12rem)] rounded-lg border"
+      >
+        {/* Left Panel */}
+        <ResizablePanel defaultSize={25} minSize={20}>
+          <div className="h-full space-y-4 p-4 overflow-y-auto">
+            {/* Strategy Details */}
+            <Card>
+              <CardHeader className="py-3">
+                <div className="flex justify-between items-center">
+                  <CardTitle className="text-lg">Strategy Details</CardTitle>
+                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                    <Settings className="h-4 w-4" />
+                  </Button>
                 </div>
-                <div>
-                  <span className="text-sm text-muted-foreground">Market:</span>
-                  <span className="text-sm ml-2 capitalize">{selectedMarket}</span>
-                </div>
-                <div>
-                  <span className="text-sm text-muted-foreground">Timeframe:</span>
-                  <span className="text-sm ml-2">{selectedTimeframe}</span>
-                </div>
-                <div>
-                  <span className="text-sm text-muted-foreground">Risk Level:</span>
-                  <Badge variant="outline" className="ml-2">Medium</Badge>
-                </div>
-                <div>
-                  <span className="text-sm text-muted-foreground">Max Position Size:</span>
-                  <span className="text-sm ml-2">₹25,000</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="py-3">
-              <CardTitle className="text-lg">Broker Connection</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex gap-2 items-center">
-                  <div className={`h-3 w-3 rounded-full 
-                    ${connectionStatus === 'connected' ? 'bg-green-500' : 
-                      connectionStatus === 'pending' ? 'bg-yellow-500' : 'bg-red-500'}`}>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div>
+                    <span className="text-sm text-muted-foreground">Type:</span>
+                    <span className="text-sm ml-2">Algorithmic</span>
                   </div>
-                  <span className="text-sm">
-                    {connectionStatus === 'connected' 
-                      ? 'Connected to ' + selectedBroker
-                      : connectionStatus === 'pending' 
-                        ? 'Connecting...' 
-                        : 'Disconnected'}
-                  </span>
-                </div>
-                
-                <Select value={selectedBroker} onValueChange={setSelectedBroker}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Broker" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="zerodha">Zerodha</SelectItem>
-                    <SelectItem value="fyers">Fyers</SelectItem>
-                    <SelectItem value="dhan">Dhan</SelectItem>
-                    <SelectItem value="angelone">Angel One</SelectItem>
-                    <SelectItem value="aliceblue">Alice Blue</SelectItem>
-                  </SelectContent>
-                </Select>
-                
-                <Button 
-                  onClick={testBrokerConnection} 
-                  disabled={!selectedBroker || isTestingConnection}
-                  variant="outline"
-                  className="w-full"
-                >
-                  {isTestingConnection ? (
-                    <>
-                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                      Testing
-                    </>
-                  ) : (
-                    <>
-                      <ExternalLink className="mr-2 h-4 w-4" />
-                      Connect
-                    </>
-                  )}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-        
-        <div className="col-span-6 space-y-4">
-          <Card>
-            <CardHeader className="py-3">
-              <div className="flex justify-between items-center">
-                <CardTitle className="text-lg">Strategy Performance</CardTitle>
-                <Button variant="outline" size="sm" className="h-8">
-                  <RefreshCw className="h-3 w-3 mr-1" />
-                  Refresh
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-4 gap-4 mb-4">
-                <div className="flex flex-col p-3 bg-muted rounded-lg">
-                  <span className="text-sm text-muted-foreground">Realized P&L</span>
-                  <span className={`text-lg font-bold ${executionMetrics.realizedPnL >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                    {executionMetrics.realizedPnL >= 0 ? '+' : ''}₹{executionMetrics.realizedPnL.toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex flex-col p-3 bg-muted rounded-lg">
-                  <span className="text-sm text-muted-foreground">Unrealized P&L</span>
-                  <span className={`text-lg font-bold ${executionMetrics.unrealizedPnL >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                    {executionMetrics.unrealizedPnL >= 0 ? '+' : ''}₹{executionMetrics.unrealizedPnL.toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex flex-col p-3 bg-muted rounded-lg">
-                  <span className="text-sm text-muted-foreground">Total P&L</span>
-                  <span className={`text-lg font-bold ${executionMetrics.totalPnL >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                    {executionMetrics.totalPnL >= 0 ? '+' : ''}₹{executionMetrics.totalPnL.toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex flex-col p-3 bg-muted rounded-lg">
-                  <span className="text-sm text-muted-foreground">Win Rate</span>
-                  <span className={`text-lg font-bold ${parseFloat(executionMetrics.winRate) > 50 ? 'text-green-500' : 'text-red-500'}`}>
-                    {executionMetrics.winRate}
-                  </span>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-3 gap-4">
-                <div className="flex items-center p-3 bg-muted rounded-lg">
-                  <Activity className="h-5 w-5 mr-2 text-muted-foreground" />
-                  <div className="flex flex-col">
-                    <span className="text-xs text-muted-foreground">Execution Speed</span>
-                    <span className="text-sm font-medium">{executionMetrics.avgExecutionSpeed}</span>
+                  <div>
+                    <span className="text-sm text-muted-foreground">Market:</span>
+                    <span className="text-sm ml-2 capitalize">{selectedMarket}</span>
+                  </div>
+                  <div>
+                    <span className="text-sm text-muted-foreground">Timeframe:</span>
+                    <span className="text-sm ml-2">{selectedTimeframe}</span>
+                  </div>
+                  <div>
+                    <span className="text-sm text-muted-foreground">Risk Level:</span>
+                    <Badge variant="outline" className="ml-2">Medium</Badge>
+                  </div>
+                  <div>
+                    <span className="text-sm text-muted-foreground">Max Position Size:</span>
+                    <span className="text-sm ml-2">₹25,000</span>
                   </div>
                 </div>
-                <div className="flex items-center p-3 bg-muted rounded-lg">
-                  <ArrowRightLeft className="h-5 w-5 mr-2 text-muted-foreground" />
-                  <div className="flex flex-col">
-                    <span className="text-xs text-muted-foreground">Avg. Slippage</span>
-                    <span className="text-sm font-medium">{executionMetrics.avgSlippage}</span>
-                  </div>
-                </div>
-                <div className="flex items-center p-3 bg-muted rounded-lg">
-                  <Layers className="h-5 w-5 mr-2 text-muted-foreground" />
-                  <div className="flex flex-col">
-                    <span className="text-xs text-muted-foreground">Fill Rate</span>
-                    <span className="text-sm font-medium">{executionMetrics.fillRate}</span>
-                  </div>
-                </div>
-                <div className="flex items-center p-3 bg-muted rounded-lg">
-                  <Coins className="h-5 w-5 mr-2 text-muted-foreground" />
-                  <div className="flex flex-col">
-                    <span className="text-xs text-muted-foreground">Margin Used</span>
-                    <span className="text-sm font-medium">{executionMetrics.marginUsed}</span>
-                  </div>
-                </div>
-                <div className="flex items-center p-3 bg-muted rounded-lg">
-                  <TrendingDown className="h-5 w-5 mr-2 text-muted-foreground" />
-                  <div className="flex flex-col">
-                    <span className="text-xs text-muted-foreground">Max Drawdown</span>
-                    <span className="text-sm font-medium">{executionMetrics.maxDrawdown}</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="py-3">
-              <CardTitle className="text-lg">Open Positions</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Instrument</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Entry</TableHead>
-                    <TableHead>Current</TableHead>
-                    <TableHead>P&L</TableHead>
-                    <TableHead>SL/TP</TableHead>
-                    <TableHead>Execution</TableHead>
-                    <TableHead></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {positions
-                    .filter(position => {
-                      // Only show positions for this strategy
-                      const strategyName = strategies.find(s => s.id === selectedStrategy)?.name;
-                      return position.strategy === strategyName;
-                    })
-                    .map(position => (
-                    <TableRow key={position.id}>
-                      <TableCell className="font-medium">
-                        {position.instrument}
-                        <div className="text-xs text-muted-foreground">
-                          {position.quantity} lots
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={position.type === "LONG" ? "bg-green-500" : "bg-red-500"}>
-                          {position.type}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{position.entryPrice}</TableCell>
-                      <TableCell>{position.currentPrice}</TableCell>
-                      <TableCell className={position.pnl > 0 ? "text-green-500" : "text-red-500"}>
-                        {position.pnl > 0 ? "+" : ""}{position.pnl}
-                      </TableCell>
-                      <TableCell className="text-xs">
-                        <span className="text-red-500">SL: {position.stopLoss}</span>
-                        <span className="mx-1">|</span>
-                        <span className="text-green-500">TP: {position.takeProfit}</span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-xs">
-                          <span className="text-muted-foreground">Speed: </span>
-                          <span>{position.executionSpeed}</span>
-                        </div>
-                        <div className="text-xs">
-                          <span className="text-muted-foreground">Slip: </span>
-                          <span>{position.slippage}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          className="h-7 w-7 p-0"
-                          onClick={() => closePosition(position.id)}
-                        >
-                          <Trash className="h-3 w-3" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="py-3">
-              <CardTitle className="text-lg">Trade Monitoring</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Tabs defaultValue="performance">
-                <TabsList className="mb-4">
-                  <TabsTrigger value="performance">Strategy Performance</TabsTrigger>
-                  <TabsTrigger value="heatmap">P&L Heatmap</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="performance" className="h-[300px]">
-                  <div className="h-full border rounded-md p-4">
-                    <div className="flex justify-between items-center mb-4">
-                      <div className="text-sm font-medium">Profit/Loss Evolution</div>
-                      <Select defaultValue="day">
-                        <SelectTrigger className="w-[120px] h-8 text-xs">
-                          <SelectValue placeholder="Timeframe" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="day">Today</SelectItem>
-                          <SelectItem value="week">This Week</SelectItem>
-                          <SelectItem value="month">This Month</SelectItem>
-                        </SelectContent>
-                      </Select>
+              </CardContent>
+            </Card>
+            
+            {/* Broker Connection */}
+            <Card>
+              <CardHeader className="py-3">
+                <CardTitle className="text-lg">Broker Connection</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex gap-2 items-center">
+                    <div className={`h-3 w-3 rounded-full 
+                      ${connectionStatus === 'connected' ? 'bg-green-500' : 
+                        connectionStatus === 'pending' ? 'bg-yellow-500' : 'bg-red-500'}`}>
                     </div>
-                    
-                    {/* Performance Chart Visualization */}
-                    <div className="h-[220px] w-full">
-                      <div className="relative h-full">
-                        <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-xs text-muted-foreground">
-                          <div>₹2,000</div>
-                          <div>₹1,500</div>
-                          <div>₹1,000</div>
-                          <div>₹500</div>
-                          <div>₹0</div>
-                          <div>-₹500</div>
-                        </div>
-                        
-                        <div className="absolute left-10 right-4 top-0 bottom-0">
-                          {/* Grid lines */}
-                          <div className="h-full flex flex-col justify-between">
-                            {[0, 1, 2, 3, 4, 5].map((i) => (
-                              <div key={i} className="border-b border-dashed border-gray-200 h-[16.6%]"></div>
-                            ))}
+                    <span className="text-sm">
+                      {connectionStatus === 'connected' 
+                        ? 'Connected to ' + selectedBroker
+                        : connectionStatus === 'pending' 
+                          ? 'Connecting...' 
+                          : 'Disconnected'}
+                    </span>
+                  </div>
+                  
+                  <Select value={selectedBroker} onValueChange={setSelectedBroker}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Broker" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="zerodha">Zerodha</SelectItem>
+                      <SelectItem value="fyers">Fyers</SelectItem>
+                      <SelectItem value="dhan">Dhan</SelectItem>
+                      <SelectItem value="angelone">Angel One</SelectItem>
+                      <SelectItem value="aliceblue">Alice Blue</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  <Button 
+                    onClick={testBrokerConnection} 
+                    disabled={!selectedBroker || isTestingConnection}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    {isTestingConnection ? (
+                      <>
+                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                        Testing
+                      </>
+                    ) : (
+                      <>
+                        <ExternalLink className="mr-2 h-4 w-4" />
+                        Connect
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Risk Management */}
+            <Card>
+              <CardHeader className="py-3">
+                <CardTitle className="text-lg">Risk Management</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="max-loss-strategy">Max Loss Per Trade (₹)</Label>
+                    <Input 
+                      id="max-loss-strategy"
+                      type="number" 
+                      value={maxLossPerStrategy}
+                      onChange={(e) => setMaxLossPerStrategy(Number(e.target.value))}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="max-daily-drawdown">Max Daily Drawdown (₹)</Label>
+                    <Input 
+                      id="max-daily-drawdown"
+                      type="number" 
+                      value={maxDailyDrawdown}
+                      onChange={(e) => setMaxDailyDrawdown(Number(e.target.value))}
+                    />
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch 
+                      id="auto-liquidate"
+                      checked={autoLiquidateOnBreach}
+                      onCheckedChange={setAutoLiquidateOnBreach}
+                    />
+                    <Label htmlFor="auto-liquidate">Auto-Liquidate on Breach</Label>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            {/* Session Summary */}
+            <Card>
+              <CardHeader className="py-3">
+                <CardTitle className="text-lg">Session Summary</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Session Duration:</span>
+                    <span className="text-sm font-medium">{sessionDuration}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Total Trades:</span>
+                    <span className="text-sm font-medium">
+                      {tradeLogs.filter(log => {
+                        const strategyName = strategies.find(s => s.id === selectedStrategy)?.name;
+                        return log.strategy === strategyName || log.strategy === selectedStrategy;
+                      }).length}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Success Rate:</span>
+                    <span className="text-sm font-medium">62.5%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Avg. Trade Duration:</span>
+                    <span className="text-sm font-medium">8m 45s</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Total Fees:</span>
+                    <span className="text-sm font-medium">₹175.50</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </ResizablePanel>
+
+        <ResizableHandle withHandle />
+
+        {/* Middle Panel */}
+        <ResizablePanel defaultSize={50} minSize={30}>
+          <div className="h-full space-y-4 p-4 overflow-y-auto">
+            {/* Strategy Performance */}
+            <Card>
+              <CardHeader className="py-3">
+                <div className="flex justify-between items-center">
+                  <CardTitle className="text-lg">Strategy Performance</CardTitle>
+                  <Button variant="outline" size="sm" className="h-8">
+                    <RefreshCw className="h-3 w-3 mr-1" />
+                    Refresh
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-4 gap-4 mb-4">
+                  <div className="flex flex-col p-3 bg-muted rounded-lg">
+                    <span className="text-sm text-muted-foreground">Realized P&L</span>
+                    <span className={`text-lg font-bold ${executionMetrics.realizedPnL >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                      {executionMetrics.realizedPnL >= 0 ? '+' : ''}₹{executionMetrics.realizedPnL.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex flex-col p-3 bg-muted rounded-lg">
+                    <span className="text-sm text-muted-foreground">Unrealized P&L</span>
+                    <span className={`text-lg font-bold ${executionMetrics.unrealizedPnL >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                      {executionMetrics.unrealizedPnL >= 0 ? '+' : ''}₹{executionMetrics.unrealizedPnL.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex flex-col p-3 bg-muted rounded-lg">
+                    <span className="text-sm text-muted-foreground">Total P&L</span>
+                    <span className={`text-lg font-bold ${executionMetrics.totalPnL >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                      {executionMetrics.totalPnL >= 0 ? '+' : ''}₹{executionMetrics.totalPnL.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex flex-col p-3 bg-muted rounded-lg">
+                    <span className="text-sm text-muted-foreground">Win Rate</span>
+                    <span className={`text-lg font-bold ${parseFloat(executionMetrics.winRate) > 50 ? 'text-green-500' : 'text-red-500'}`}>
+                      {executionMetrics.winRate}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="flex items-center p-3 bg-muted rounded-lg">
+                    <Activity className="h-5 w-5 mr-2 text-muted-foreground" />
+                    <div className="flex flex-col">
+                      <span className="text-xs text-muted-foreground">Execution Speed</span>
+                      <span className="text-sm font-medium">{executionMetrics.avgExecutionSpeed}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center p-3 bg-muted rounded-lg">
+                    <ArrowRightLeft className="h-5 w-5 mr-2 text-muted-foreground" />
+                    <div className="flex flex-col">
+                      <span className="text-xs text-muted-foreground">Avg. Slippage</span>
+                      <span className="text-sm font-medium">{executionMetrics.avgSlippage}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center p-3 bg-muted rounded-lg">
+                    <Layers className="h-5 w-5 mr-2 text-muted-foreground" />
+                    <div className="flex flex-col">
+                      <span className="text-xs text-muted-foreground">Fill Rate</span>
+                      <span className="text-sm font-medium">{executionMetrics.fillRate}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center p-3 bg-muted rounded-lg">
+                    <Coins className="h-5 w-5 mr-2 text-muted-foreground" />
+                    <div className="flex flex-col">
+                      <span className="text-xs text-muted-foreground">Margin Used</span>
+                      <span className="text-sm font-medium">{executionMetrics.marginUsed}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center p-3 bg-muted rounded-lg">
+                    <TrendingDown className="h-5 w-5 mr-2 text-muted-foreground" />
+                    <div className="flex flex-col">
+                      <span className="text-xs text-muted-foreground">Max Drawdown</span>
+                      <span className="text-sm font-medium">{executionMetrics.maxDrawdown}</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Open Positions */}
+            <Card>
+              <CardHeader className="py-3">
+                <CardTitle className="text-lg">Open Positions</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Instrument</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Entry</TableHead>
+                      <TableHead>Current</TableHead>
+                      <TableHead>P&L</TableHead>
+                      <TableHead>SL/TP</TableHead>
+                      <TableHead>Execution</TableHead>
+                      <TableHead></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {positions
+                      .filter(position => {
+                        // Only show positions for this strategy
+                        const strategyName = strategies.find(s => s.id === selectedStrategy)?.name;
+                        return position.strategy === strategyName;
+                      })
+                      .map(position => (
+                      <TableRow key={position.id}>
+                        <TableCell className="font-medium">
+                          {position.instrument}
+                          <div className="text-xs text-muted-foreground">
+                            {position.quantity} lots
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={position.type === "LONG" ? "bg-green-500" : "bg-red-500"}>
+                            {position.type}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{position.entryPrice}</TableCell>
+                        <TableCell>{position.currentPrice}</TableCell>
+                        <TableCell className={position.pnl > 0 ? "text-green-500" : "text-red-500"}>
+                          {position.pnl > 0 ? "+" : ""}{position.pnl}
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          <span className="text-red-500">SL: {position.stopLoss}</span>
+                          <span className="mx-1">|</span>
+                          <span className="text-green-500">TP: {position.takeProfit}</span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-xs">
+                            <span className="text-muted-foreground">Speed: </span>
+                            <span>{position.executionSpeed}</span>
+                          </div>
+                          <div className="text-xs">
+                            <span className="text-muted-foreground">Slip: </span>
+                            <span>{position.slippage}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="h-7 w-7 p-0"
+                            onClick={() => closePosition(position.id)}
+                          >
+                            <Trash className="h-3 w-3" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+
+            {/* Pending Orders */}
+            <Card>
+              <CardHeader className="py-3">
+                <CardTitle className="text-lg">Pending Orders</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0 max-h-[300px] overflow-y-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Instrument</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Price</TableHead>
+                      <TableHead></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pendingOrders
+                      .filter(order => {
+                        // Only show orders for this strategy
+                        const strategyName = strategies.find(s => s.id === selectedStrategy)?.name;
+                        return order.strategy === strategyName;
+                      })
+                      .map(order => (
+                      <TableRow key={order.id}>
+                        <TableCell className="font-medium">
+                          {order.instrument}
+                          <div className="text-xs text-muted-foreground">
+                            {order.quantity} lots
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={
+                            order.type.includes("BUY") ? "border-green-500 text-green-500" : 
+                            "border-red-500 text-red-500"
+                          }>
+                            {order.type.replace("_", " ")}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {order.price}
+                        </TableCell>
+                        <TableCell>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="h-7 w-7 p-0"
+                            onClick={() => cancelOrder(order.id)}
+                          >
+                            <Trash className="h-3 w-3" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+
+            {/* Trade Monitoring */}
+            <Card>
+              <CardHeader className="py-3">
+                <CardTitle className="text-lg">Trade Monitoring</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="performance">
+                  <TabsList className="mb-4">
+                    <TabsTrigger value="performance">Strategy Performance</TabsTrigger>
+                    <TabsTrigger value="heatmap">P&L Heatmap</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="performance" className="h-[300px]">
+                    <div className="h-full border rounded-md p-4">
+                      <div className="flex justify-between items-center mb-4">
+                        <div className="text-sm font-medium">Profit/Loss Evolution</div>
+                        <Select defaultValue="day">
+                          <SelectTrigger className="w-[120px] h-8 text-xs">
+                            <SelectValue placeholder="Timeframe" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="day">Today</SelectItem>
+                            <SelectItem value="week">This Week</SelectItem>
+                            <SelectItem value="month">This Month</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      {/* Performance Chart Visualization */}
+                      <div className="h-[220px] w-full">
+                        <div className="relative h-full">
+                          <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-xs text-muted-foreground">
+                            <div>₹2,000</div>
+                            <div>₹1,500</div>
+                            <div>₹1,000</div>
+                            <div>₹500</div>
+                            <div>₹0</div>
+                            <div>-₹500</div>
                           </div>
                           
-                          {/* Time labels */}
-                          <div className="absolute bottom-[-20px] left-0 right-0 flex justify-between text-xs text-muted-foreground">
-                            {['09:30', '11:00', '12:30', '14:00', '15:30'].map((time) => (
-                              <div key={time}>{time}</div>
-                            ))}
-                          </div>
-                          
-                          {/* Chart line */}
-                          <svg className="absolute inset-0 h-full w-full overflow-visible">
-                            <defs>
-                              <linearGradient id="performance-gradient" x1="0" x2="0" y1="0" y2="1">
-                                <stop offset="0%" stopColor="rgba(52, 211, 153, 0.2)" />
-                                <stop offset="100%" stopColor="rgba(52, 211, 153, 0)" />
-                              </linearGradient>
-                            </defs>
+                          <div className="absolute left-10 right-4 top-0 bottom-0">
+                            {/* Grid lines */}
+                            <div className="h-full flex flex-col justify-between">
+                              {[0, 1, 2, 3, 4, 5].map((i) => (
+                                <div key={i} className="border-b border-dashed border-gray-200 h-[16.6%]"></div>
+                              ))}
+                            </div>
                             
-                            {/* Area under the chart */}
-                            <path
-                              d={`M0,${200 - (performanceData[0].value / 2000) * 200} ${performanceData.map((d, i) => `L${(i / (performanceData.length - 1)) * 100}%,${200 - (d.value / 2000) * 200}`).join(' ')} L100%,200 L0,200 Z`}
-                              fill="url(#performance-gradient)"
-                            />
+                            {/* Time labels */}
+                            <div className="absolute bottom-[-20px] left-0 right-0 flex justify-between text-xs text-muted-foreground">
+                              {['09:30', '11:00', '12:30', '14:00', '15:30'].map((time) => (
+                                <div key={time}>{time}</div>
+                              ))}
+                            </div>
                             
                             {/* Chart line */}
-                            <path
-                              d={`M0,${200 - (performanceData[0].value / 2000) * 200} ${performanceData.map((d, i) => `L${(i / (performanceData.length - 1)) * 100}%,${200 - (d.value / 2000) * 200}`).join(' ')}`}
-                              stroke="#10b981"
-                              strokeWidth="2"
-                              fill="none"
-                            />
-                            
-                            {/* Data points */}
-                            {performanceData.map((d, i) => (
-                              <circle
-                                key={i}
-                                cx={`${(i / (performanceData.length - 1)) * 100}%`}
-                                cy={200 - (d.value / 2000) * 200}
-                                r="3"
-                                fill="#10b981"
+                            <svg className="absolute inset-0 h-full w-full overflow-visible">
+                              <defs>
+                                <linearGradient id="performance-gradient" x1="0" x2="0" y1="0" y2="1">
+                                  <stop offset="0%" stopColor="rgba(52, 211, 153, 0.2)" />
+                                  <stop offset="100%" stopColor="rgba(52, 211, 153, 0)" />
+                                </linearGradient>
+                              </defs>
+                              
+                              {/* Area under the chart */}
+                              <path
+                                d={`M0,${200 - (performanceData[0].value / 2000) * 200} ${performanceData.map((d, i) => `L${(i / (performanceData.length - 1)) * 100}%,${200 - (d.value / 2000) * 200}`).join(' ')} L100%,200 L0,200 Z`}
+                                fill="url(#performance-gradient)"
                               />
-                            ))}
-                          </svg>
+                              
+                              {/* Chart line */}
+                              <path
+                                d={`M0,${200 - (performanceData[0].value / 2000) * 200} ${performanceData.map((d, i) => `L${(i / (performanceData.length - 1)) * 100}%,${200 - (d.value / 2000) * 200}`).join(' ')}`}
+                                stroke="#10b981"
+                                strokeWidth="2"
+                                fill="none"
+                              />
+                              
+                              {/* Data points */}
+                              {performanceData.map((d, i) => (
+                                <circle
+                                  key={i}
+                                  cx={`${(i / (performanceData.length - 1)) * 100}%`}
+                                  cy={200 - (d.value / 2000) * 200}
+                                  r="3"
+                                  fill="#10b981"
+                                />
+                              ))}
+                            </svg>
+                          </div>
                         </div>
                       </div>
                     </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="heatmap" className="h-[300px]">
+                    <HeatmapChart />
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+
+            {/* Execution Logs */}
+            <Card>
+              <CardHeader className="py-3">
+                <div className="flex justify-between items-center">
+                  <CardTitle className="text-lg">Execution Logs</CardTitle>
+                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0 max-h-[300px] overflow-y-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Time</TableHead>
+                      <TableHead>Action</TableHead>
+                      <TableHead>Instrument</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {tradeLogs
+                      .filter(log => {
+                        // Filter logs for current strategy 
+                        const strategyName = strategies.find(s => s.id === selectedStrategy)?.name;
+                        return log.strategy === strategyName || log.strategy === selectedStrategy;
+                      })
+                      .map(log => (
+                      <TableRow key={log.id}>
+                        <TableCell className="text-xs">{log.timestamp}</TableCell>
+                        <TableCell>
+                          <Badge className={
+                            log.action === "BUY" ? "bg-green-500" : 
+                            log.action === "SELL" ? "bg-red-500" : 
+                            log.action.includes("SL") ? "bg-amber-500" : 
+                            log.action.includes("TP") ? "bg-blue-500" : 
+                            "bg-gray-500"
+                          }>
+                            {log.action}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-medium text-xs">{log.instrument}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <div className={`h-2 w-2 rounded-full ${
+                              log.status === "EXECUTED" ? "bg-green-500" : 
+                              log.status === "PENDING" ? "bg-amber-500" : 
+                              "bg-red-500"
+                            }`}></div>
+                            <span className="text-xs">{log.status}</span>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+              <CardFooter className="border-t py-2">
+                <Button variant="ghost" size="sm" className="text-xs h-7 w-full">
+                  View All Logs
+                </Button>
+              </CardFooter>
+            </Card>
+          </div>
+        </ResizablePanel>
+
+        <ResizableHandle withHandle />
+
+        {/* Right Panel */}
+        <ResizablePanel defaultSize={25} minSize={20}>
+          <div className="h-full space-y-4 p-4 overflow-y-auto">
+            {/* Market Data */}
+            <Card>
+              <CardHeader className="py-3">
+                <div className="flex justify-between items-center">
+                  <CardTitle className="text-lg">Market Data</CardTitle>
+                  <Select defaultValue="NIFTY50">
+                    <SelectTrigger className="w-[120px]">
+                      <SelectValue placeholder="Symbol" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="NIFTY50">NIFTY 50</SelectItem>
+                      <SelectItem value="BANKNIFTY">BANK NIFTY</SelectItem>
+                      <SelectItem value="RELIANCE">RELIANCE</SelectItem>
+                      <SelectItem value="INFY">INFOSYS</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="space-y-2">
+                    <div className="text-sm font-medium text-green-500">Bids (Buy)</div>
+                    <div className="space-y-1">
+                      {bidOrders.map((order, index) => (
+                        <div key={index} className="flex justify-between text-sm border-b last:border-0 pb-1 last:pb-0">
+                          <span className="text-green-500 font-medium">{order.price}</span>
+                          <span>{order.volume}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </TabsContent>
+                  
+                  <div className="space-y-2">
+                    <div className="text-sm font-medium text-red-500">Asks (Sell)</div>
+                    <div className="space-y-1">
+                      {askOrders.map((order, index) => (
+                        <div key={index} className="flex justify-between text-sm border-b last:border-0 pb-1 last:pb-0">
+                          <span className="text-red-500 font-medium">{order.price}</span>
+                          <span>{order.volume}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
                 
-                <TabsContent value="heatmap" className="h-[300px]">
-                  <HeatmapChart />
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="py-3">
-              <CardTitle className="text-lg">Manual Order Execution</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid md:grid-cols-2 gap-4">
+                <div className="mt-3 mb-4">
+                  <div className="text-sm font-medium mb-2">Recent Trades</div>
+                  <div className="space-y-1 max-h-[120px] overflow-y-auto pr-1">
+                    {recentMarketTrades.map((trade, index) => (
+                      <div key={index} className="flex justify-between text-xs border-b pb-1">
+                        <span className="text-muted-foreground">{trade.time}</span>
+                        <span className={trade.side === 'buy' ? 'text-green-500' : 'text-red-500'}>
+                          {trade.price}
+                        </span>
+                        <span>{trade.volume}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="p-2 bg-muted rounded-md flex justify-between items-center">
+                  <div>
+                    <span className="text-xs text-muted-foreground">Spread:</span>
+                    <span className="text-sm ml-1">10 pts (0.05%)</span>
+                  </div>
+                  <div>
+                    <Badge className="bg-green-500">Bullish</Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Manual Order Execution */}
+            <Card>
+              <CardHeader className="py-3">
+                <CardTitle className="text-lg">Manual Order Execution</CardTitle>
+              </CardHeader>
+              <CardContent>
                 <div className="space-y-3">
                   <div className="space-y-2">
                     <Label htmlFor="stock-search">Instrument</Label>
@@ -1401,9 +1573,7 @@ const LiveTradingModule = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
-                
-                <div className="space-y-3">
+
                   <div className="space-y-2">
                     <Label htmlFor="quantity">Quantity/Lots</Label>
                     <div className="flex">
@@ -1457,206 +1627,43 @@ const LiveTradingModule = () => {
                     {selectedOrderDirection === "buy" ? "BUY" : "SELL"} {selectedStock || "INSTRUMENT"}
                   </Button>
                 </div>
-              </div>
-              
-              <div className="mt-4 p-3 bg-muted rounded-md">
-                <div className="text-sm font-medium mb-2">Position Sizing</div>
-                <div className="grid grid-cols-3 gap-2 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">Risk:</span>
-                    <span className="ml-1">2%</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Est. Value:</span>
-                    <span className="ml-1">₹{(quantity * orderPrice).toLocaleString()}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Margin Req:</span>
-                    <span className="ml-1">₹{Math.round((quantity * orderPrice) / leverageLevel).toLocaleString()}</span>
-                  </div>
+              </CardContent>
+            </Card>
+
+            {/* Alert Feed */}
+            <Card>
+              <CardHeader className="py-3">
+                <div className="flex justify-between items-center">
+                  <CardTitle className="text-lg">Alerts Feed</CardTitle>
+                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                    <BellRing className="h-4 w-4" />
+                  </Button>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-        
-        <div className="col-span-3 space-y-4">
-          <Card>
-            <CardHeader className="py-3">
-              <div className="flex justify-between items-center">
-                <CardTitle className="text-lg">Market Data</CardTitle>
-                <Select defaultValue="NIFTY50">
-                  <SelectTrigger className="w-[120px]">
-                    <SelectValue placeholder="Symbol" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="NIFTY50">NIFTY 50</SelectItem>
-                    <SelectItem value="BANKNIFTY">BANK NIFTY</SelectItem>
-                    <SelectItem value="RELIANCE">RELIANCE</SelectItem>
-                    <SelectItem value="INFY">INFOSYS</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4 mb-4">
+              </CardHeader>
+              <CardContent>
                 <div className="space-y-2">
-                  <div className="text-sm font-medium text-green-500">Bids (Buy)</div>
-                  <div className="space-y-1">
-                    {bidOrders.map((order, index) => (
-                      <div key={index} className="flex justify-between text-sm border-b last:border-0 pb-1 last:pb-0">
-                        <span className="text-green-500 font-medium">{order.price}</span>
-                        <span>{order.volume}</span>
+                  {alerts.map(alert => (
+                    <div key={alert.id} className={`p-2 rounded-md border ${getAlertColor(alert.type)}`}>
+                      <div className="flex items-center">
+                        {getAlertIcon(alert.type)}
+                        <div className="flex flex-col ml-2">
+                          <span className="text-sm">{alert.message}</span>
+                          <span className="text-xs opacity-80">{alert.time}</span>
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="text-sm font-medium text-red-500">Asks (Sell)</div>
-                  <div className="space-y-1">
-                    {askOrders.map((order, index) => (
-                      <div key={index} className="flex justify-between text-sm border-b last:border-0 pb-1 last:pb-0">
-                        <span className="text-red-500 font-medium">{order.price}</span>
-                        <span>{order.volume}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              
-              <div className="mt-3 mb-4">
-                <div className="text-sm font-medium mb-2">Recent Trades</div>
-                <div className="space-y-1 max-h-[120px] overflow-y-auto pr-1">
-                  {recentMarketTrades.map((trade, index) => (
-                    <div key={index} className="flex justify-between text-xs border-b pb-1">
-                      <span className="text-muted-foreground">{trade.time}</span>
-                      <span className={trade.side === 'buy' ? 'text-green-500' : 'text-red-500'}>
-                        {trade.price}
-                      </span>
-                      <span>{trade.volume}</span>
                     </div>
                   ))}
                 </div>
-              </div>
-              
-              <div className="p-2 bg-muted rounded-md flex justify-between items-center">
-                <div>
-                  <span className="text-xs text-muted-foreground">Spread:</span>
-                  <span className="text-sm ml-1">10 pts (0.05%)</span>
-                </div>
-                <div>
-                  <Badge className="bg-green-500">Bullish</Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="py-3">
-              <div className="flex justify-between items-center">
-                <CardTitle className="text-lg">Alerts Feed</CardTitle>
-                <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                  <BellRing className="h-4 w-4" />
+              </CardContent>
+              <CardFooter className="border-t py-2">
+                <Button variant="ghost" size="sm" className="text-xs h-7 w-full">
+                  View All Alerts
                 </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {alerts.map(alert => (
-                  <div key={alert.id} className={`p-2 rounded-md border ${getAlertColor(alert.type)}`}>
-                    <div className="flex items-center">
-                      {getAlertIcon(alert.type)}
-                      <div className="flex flex-col ml-2">
-                        <span className="text-sm">{alert.message}</span>
-                        <span className="text-xs opacity-80">{alert.time}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-            <CardFooter className="border-t py-2">
-              <Button variant="ghost" size="sm" className="text-xs h-7 w-full">
-                View All Alerts
-              </Button>
-            </CardFooter>
-          </Card>
-          
-          <Card>
-            <CardHeader className="py-3">
-              <CardTitle className="text-lg">Risk Management</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="space-y-2">
-                  <Label htmlFor="max-loss-strategy">Max Loss Per Trade (₹)</Label>
-                  <Input 
-                    id="max-loss-strategy"
-                    type="number" 
-                    value={maxLossPerStrategy}
-                    onChange={(e) => setMaxLossPerStrategy(Number(e.target.value))}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="max-daily-drawdown">Max Daily Drawdown (₹)</Label>
-                  <Input 
-                    id="max-daily-drawdown"
-                    type="number" 
-                    value={maxDailyDrawdown}
-                    onChange={(e) => setMaxDailyDrawdown(Number(e.target.value))}
-                  />
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Switch 
-                    id="auto-liquidate"
-                    checked={autoLiquidateOnBreach}
-                    onCheckedChange={setAutoLiquidateOnBreach}
-                  />
-                  <Label htmlFor="auto-liquidate">Auto-Liquidate on Breach</Label>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="py-3">
-              <CardTitle className="text-lg">Session Summary</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Session Duration:</span>
-                  <span className="text-sm font-medium">{sessionDuration}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Total Trades:</span>
-                  <span className="text-sm font-medium">
-                    {tradeLogs.filter(log => {
-                      const strategyName = strategies.find(s => s.id === selectedStrategy)?.name;
-                      return log.strategy === strategyName || log.strategy === selectedStrategy;
-                    }).length}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Success Rate:</span>
-                  <span className="text-sm font-medium">62.5%</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Avg. Trade Duration:</span>
-                  <span className="text-sm font-medium">8m 45s</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Total Fees:</span>
-                  <span className="text-sm font-medium">₹175.50</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+              </CardFooter>
+            </Card>
+          </div>
+        </ResizablePanel>
+      </ResizablePanelGroup>
       
       <Dialog open={showOrderConfirmation} onOpenChange={setShowOrderConfirmation}>
         <DialogContent>
