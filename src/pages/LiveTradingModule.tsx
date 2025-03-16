@@ -21,7 +21,15 @@ import {
   ArrowRightLeft,
   Shield,
   ShieldAlert,
-  Settings
+  Settings,
+  BarChart3,
+  Clock,
+  DollarSign,
+  Coins,
+  Layers,
+  GitBranch,
+  Clock1,
+  ChevronDown
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -34,7 +42,6 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { useForm } from "react-hook-form";
 import { toast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -50,12 +57,25 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Separator } from "@/components/ui/separator";
+import { DashboardRecentBacktests } from "@/components/dashboard/RecentBacktests";
 
 const LiveTradingModule = () => {
   // Update the page title
   useEffect(() => {
     document.title = "Live Trading | TradeFlow";
   }, []);
+
+  // Top Bar States
+  const [selectedStrategy, setSelectedStrategy] = useState<string>("algo");
+  const [strategyStatus, setStrategyStatus] = useState<"active" | "pending" | "stopped">("active");
+  const [selectedMarket, setSelectedMarket] = useState<string>("stocks");
+  const [selectedTimeframe, setSelectedTimeframe] = useState<string>("5min");
+  const [accountValue, setAccountValue] = useState<number>(125000);
+  const [availableMargin, setAvailableMargin] = useState<number>(75000);
+  const [usedMargin, setUsedMargin] = useState<number>(50000);
+  const [leverageLevel, setLeverageLevel] = useState<number>(2);
+  const [tradingMode, setTradingMode] = useState<"paper" | "live">("paper");
 
   // Broker connection states
   const [brokerConnected, setBrokerConnected] = useState<boolean>(false);
@@ -66,62 +86,121 @@ const LiveTradingModule = () => {
   const [isTestingConnection, setIsTestingConnection] = useState<boolean>(false);
   const [autoReconnect, setAutoReconnect] = useState<boolean>(true);
 
+  // Order Book States
+  const [bidOrders, setBidOrders] = useState([
+    { price: 18495, volume: 125 },
+    { price: 18490, volume: 230 },
+    { price: 18485, volume: 312 },
+    { price: 18480, volume: 240 },
+    { price: 18475, volume: 190 },
+  ]);
+  
+  const [askOrders, setAskOrders] = useState([
+    { price: 18505, volume: 110 },
+    { price: 18510, volume: 185 },
+    { price: 18515, volume: 230 },
+    { price: 18520, volume: 300 },
+    { price: 18525, volume: 275 },
+  ]);
+
+  // Position and Order States
+  const [positions, setPositions] = useState([
+    {
+      id: 1, 
+      instrument: "NIFTY50",
+      quantity: 2,
+      entryPrice: 18500,
+      currentPrice: 18650,
+      pnl: 3000,
+      type: "LONG",
+      stopLoss: 18400,
+      takeProfit: 18750
+    },
+    {
+      id: 2, 
+      instrument: "RELIANCE",
+      quantity: 1,
+      entryPrice: 2420,
+      currentPrice: 2400,
+      pnl: -2000,
+      type: "SHORT",
+      stopLoss: 2450,
+      takeProfit: 2350
+    },
+    {
+      id: 3, 
+      instrument: "HDFCBANK",
+      quantity: 5,
+      entryPrice: 1580,
+      currentPrice: 1550,
+      pnl: -1500,
+      type: "LONG",
+      stopLoss: 1535,
+      takeProfit: 1625
+    }
+  ]);
+
+  const [pendingOrders, setPendingOrders] = useState([
+    {
+      id: 1,
+      instrument: "INFY",
+      quantity: 3,
+      price: 1525,
+      type: "LIMIT_BUY"
+    },
+    {
+      id: 2,
+      instrument: "TCS",
+      quantity: 2,
+      price: 3400,
+      type: "STOP_SELL"
+    }
+  ]);
+
   // Manual trading states
   const [selectedStock, setSelectedStock] = useState<string>("");
   const [orderType, setOrderType] = useState<string>("market");
   const [quantity, setQuantity] = useState<number>(1);
   const [selectedOrderDirection, setSelectedOrderDirection] = useState<string>("buy");
   const [showOrderConfirmation, setShowOrderConfirmation] = useState<boolean>(false);
+  const [orderPrice, setOrderPrice] = useState<number>(18500);
 
   // Risk management states
   const [maxLossPerStrategy, setMaxLossPerStrategy] = useState<number>(1000);
   const [maxDailyDrawdown, setMaxDailyDrawdown] = useState<number>(5000);
   const [autoLiquidateOnBreach, setAutoLiquidateOnBreach] = useState<boolean>(true);
 
-  // Trade monitoring state
-  const [activeTab, setActiveTab] = useState<string>("heatmap");
-
-  // Mock strategies data
-  const [strategies, setStrategies] = useState([
+  // Trade logs state
+  const [tradeLogs, setTradeLogs] = useState([
     {
       id: 1,
-      name: "Mean Reversion",
-      symbol: "NIFTY50",
-      position: "Long (2 lots)",
-      entryPrice: 18500,
-      currentPrice: 18650,
-      pnl: 3000,
-      status: "active"
+      timestamp: "10:32:45",
+      action: "BUY",
+      instrument: "NIFTY50",
+      quantity: 2,
+      price: 18500,
+      executionTime: "142ms",
+      status: "EXECUTED"
     },
     {
       id: 2,
-      name: "Momentum Breakout",
-      symbol: "RELIANCE",
-      position: "Short (1 lot)",
-      entryPrice: 2420,
-      currentPrice: 2400,
-      pnl: 2000,
-      status: "active"
+      timestamp: "11:15:22",
+      action: "SELL",
+      instrument: "RELIANCE",
+      quantity: 1,
+      price: 2420,
+      executionTime: "156ms",
+      status: "EXECUTED"
     },
     {
       id: 3,
-      name: "RSI Divergence",
-      symbol: "HDFCBANK",
-      position: "Long (5 lots)",
-      entryPrice: 1580,
-      currentPrice: 1550,
-      pnl: -1500,
-      status: "active"
-    },
-    {
-      id: 4,
-      name: "Volatility Breakout",
-      symbol: "BANKNIFTY",
-      position: "No Position",
-      entryPrice: 0,
-      currentPrice: 0,
-      pnl: 0,
-      status: "paused"
+      timestamp: "13:45:11",
+      action: "BUY",
+      instrument: "HDFCBANK",
+      quantity: 5,
+      price: 1580,
+      executionTime: "189ms",
+      status: "EXECUTED"
     }
   ]);
 
@@ -146,11 +225,7 @@ const LiveTradingModule = () => {
 
   // Emergency stop function
   const emergencyPauseAllTrades = () => {
-    // Update status of all strategies to paused
-    setStrategies(strategies.map(strategy => ({
-      ...strategy,
-      status: "paused"
-    })));
+    setStrategyStatus("stopped");
     
     toast({
       title: "Emergency Stop Activated",
@@ -159,38 +234,46 @@ const LiveTradingModule = () => {
     });
   };
 
-  // Toggle strategy status function
-  const toggleStrategyStatus = (id: number) => {
-    setStrategies(strategies.map(strategy => 
-      strategy.id === id 
-        ? { ...strategy, status: strategy.status === "active" ? "paused" : "active" } 
-        : strategy
-    ));
-
-    const strategy = strategies.find(s => s.id === id);
-    const newStatus = strategy?.status === "active" ? "paused" : "active";
+  // Close position function
+  const closePosition = (id: number) => {
+    const position = positions.find(p => p.id === id);
     
-    toast({
-      title: `Strategy ${newStatus === "active" ? "Activated" : "Paused"}`,
-      description: `${strategy?.name} is now ${newStatus}.`,
-      variant: "default",
-    });
-  };
-
-  // Close strategy position function
-  const closeStrategyPosition = (id: number) => {
-    const strategy = strategies.find(s => s.id === id);
-    
-    if (strategy && strategy.status === "active") {
-      setStrategies(strategies.map(s => 
-        s.id === id 
-          ? { ...s, position: "No Position", pnl: 0 } 
-          : s
-      ));
+    if (position) {
+      setPositions(positions.filter(p => p.id !== id));
       
       toast({
         title: "Position Closed",
-        description: `Closed position for ${strategy.name}.`,
+        description: `Closed ${position.instrument} position at market price.`,
+        variant: "default",
+      });
+      
+      // Add to trade log
+      setTradeLogs([
+        {
+          id: tradeLogs.length + 1,
+          timestamp: new Date().toLocaleTimeString('en-US', { hour12: false }),
+          action: position.type === "LONG" ? "SELL" : "BUY",
+          instrument: position.instrument,
+          quantity: position.quantity,
+          price: position.currentPrice,
+          executionTime: `${Math.floor(Math.random() * 100) + 100}ms`,
+          status: "EXECUTED"
+        },
+        ...tradeLogs
+      ]);
+    }
+  };
+
+  // Cancel order function
+  const cancelOrder = (id: number) => {
+    const order = pendingOrders.find(o => o.id === id);
+    
+    if (order) {
+      setPendingOrders(pendingOrders.filter(o => o.id !== id));
+      
+      toast({
+        title: "Order Cancelled",
+        description: `Cancelled ${order.type} order for ${order.instrument}.`,
         variant: "default",
       });
     }
@@ -200,11 +283,43 @@ const LiveTradingModule = () => {
   const placeManualOrder = () => {
     setShowOrderConfirmation(false);
     
-    toast({
-      title: "Order Placed Successfully",
-      description: `${selectedOrderDirection.toUpperCase()} ${quantity} lots of ${selectedStock} via ${orderType} order.`,
-      variant: "default",
-    });
+    // Add to positions
+    if (selectedStock) {
+      const newPosition = {
+        id: positions.length + 1,
+        instrument: selectedStock,
+        quantity: quantity,
+        entryPrice: orderPrice,
+        currentPrice: orderPrice,
+        pnl: 0,
+        type: selectedOrderDirection.toUpperCase() === "BUY" ? "LONG" : "SHORT",
+        stopLoss: selectedOrderDirection.toUpperCase() === "BUY" ? orderPrice * 0.98 : orderPrice * 1.02,
+        takeProfit: selectedOrderDirection.toUpperCase() === "BUY" ? orderPrice * 1.03 : orderPrice * 0.97
+      };
+      
+      setPositions([...positions, newPosition]);
+      
+      // Add to trade log
+      setTradeLogs([
+        {
+          id: tradeLogs.length + 1,
+          timestamp: new Date().toLocaleTimeString('en-US', { hour12: false }),
+          action: selectedOrderDirection.toUpperCase(),
+          instrument: selectedStock,
+          quantity: quantity,
+          price: orderPrice,
+          executionTime: `${Math.floor(Math.random() * 100) + 100}ms`,
+          status: "EXECUTED"
+        },
+        ...tradeLogs
+      ]);
+      
+      toast({
+        title: "Order Placed Successfully",
+        description: `${selectedOrderDirection.toUpperCase()} ${quantity} ${selectedStock} at ${orderPrice} via ${orderType} order.`,
+        variant: "default",
+      });
+    }
   };
 
   // Increase quantity handler
@@ -220,143 +335,511 @@ const LiveTradingModule = () => {
   };
 
   return (
-    <div className="container p-4 md:p-6 space-y-6">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Live Trading</h1>
-          <p className="text-muted-foreground">
-            Monitor and control your active trading strategies
-          </p>
+    <div className="container p-4 mx-auto">
+      {/* Top Bar */}
+      <div className="grid grid-cols-12 gap-3 mb-4">
+        <div className="col-span-3 flex items-center gap-2">
+          <div>
+            <Select value={selectedStrategy} onValueChange={setSelectedStrategy}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Select Strategy" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="algo">Algorithmic</SelectItem>
+                <SelectItem value="manual">Manual</SelectItem>
+                <SelectItem value="hybrid">Hybrid</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <Badge className={
+            strategyStatus === "active" ? "bg-green-500" : 
+            strategyStatus === "pending" ? "bg-yellow-500" : 
+            "bg-red-500"
+          }>
+            {strategyStatus === "active" ? "Active" : 
+             strategyStatus === "pending" ? "Pending" : 
+             "Stopped"}
+          </Badge>
         </div>
-        <Button 
-          variant="destructive" 
-          size="sm"
-          onClick={emergencyPauseAllTrades}
-          className="flex items-center"
-        >
-          <PowerOff className="mr-2 h-4 w-4" />
-          Emergency Stop All Trades
-        </Button>
+        
+        <div className="col-span-3">
+          <div className="flex gap-2">
+            <Select value={selectedMarket} onValueChange={setSelectedMarket}>
+              <SelectTrigger className="w-[120px]">
+                <SelectValue placeholder="Market" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="stocks">Stocks</SelectItem>
+                <SelectItem value="futures">Futures</SelectItem>
+                <SelectItem value="options">Options</SelectItem>
+                <SelectItem value="forex">Forex</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            <Select value={selectedTimeframe} onValueChange={setSelectedTimeframe}>
+              <SelectTrigger className="w-[100px]">
+                <SelectValue placeholder="Timeframe" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1min">1 min</SelectItem>
+                <SelectItem value="5min">5 min</SelectItem>
+                <SelectItem value="15min">15 min</SelectItem>
+                <SelectItem value="1hour">1 hour</SelectItem>
+                <SelectItem value="1day">1 day</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        
+        <div className="col-span-4 flex items-center border rounded-md px-3 py-1 gap-4">
+          <div>
+            <div className="text-xs text-muted-foreground">Account Value</div>
+            <div className="font-semibold">₹{accountValue.toLocaleString()}</div>
+          </div>
+          <Separator orientation="vertical" className="h-8" />
+          <div>
+            <div className="text-xs text-muted-foreground">Available Margin</div>
+            <div className="font-semibold">₹{availableMargin.toLocaleString()}</div>
+          </div>
+          <Separator orientation="vertical" className="h-8" />
+          <div>
+            <div className="text-xs text-muted-foreground">Leverage</div>
+            <div className="font-semibold">{leverageLevel}x</div>
+          </div>
+        </div>
+        
+        <div className="col-span-2 flex items-center justify-end">
+          <div className="flex gap-2 items-center">
+            <div className="text-sm mr-1">Mode:</div>
+            <ToggleGroup type="single" value={tradingMode} onValueChange={(value) => {
+              if (value) setTradingMode(value as "paper" | "live");
+            }}>
+              <ToggleGroupItem value="paper" className="text-xs px-2 h-8">Paper</ToggleGroupItem>
+              <ToggleGroupItem value="live" className="text-xs px-2 h-8">Live</ToggleGroupItem>
+            </ToggleGroup>
+          </div>
+        </div>
       </div>
-
-      <div className="grid gap-6 md:grid-cols-3">
-        {/* Left Column: Broker Connection UI */}
-        <div className="space-y-6">
+      
+      {/* Main Content Area */}
+      <div className="grid grid-cols-12 gap-4">
+        {/* Left Sidebar */}
+        <div className="col-span-3 space-y-4">
+          {/* Open Positions */}
+          <Card>
+            <CardHeader className="py-3">
+              <CardTitle className="text-lg">Open Positions</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-1/3">Instrument</TableHead>
+                    <TableHead className="w-1/4">Pos</TableHead>
+                    <TableHead className="w-1/4">P&L</TableHead>
+                    <TableHead className="w-1/6"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {positions.slice(0, 3).map(position => (
+                    <TableRow key={position.id}>
+                      <TableCell className="font-medium">
+                        {position.instrument}
+                        <div className="text-xs text-muted-foreground">
+                          {position.quantity} lots
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={position.type === "LONG" ? "bg-green-500" : "bg-red-500"}>
+                          {position.type}
+                        </Badge>
+                        <div className="text-xs mt-1">
+                          @{position.entryPrice}
+                        </div>
+                      </TableCell>
+                      <TableCell className={position.pnl > 0 ? "text-green-500" : "text-red-500"}>
+                        {position.pnl > 0 ? "+" : ""}{position.pnl}
+                        <div className="text-xs text-muted-foreground">
+                          SL: {position.stopLoss} | TP: {position.takeProfit}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="h-7 w-7 p-0"
+                          onClick={() => closePosition(position.id)}
+                        >
+                          <Trash className="h-3 w-3" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+            <CardFooter className="border-t py-2">
+              <Button variant="ghost" size="sm" className="text-xs h-7 w-full">
+                View All Positions
+              </Button>
+            </CardFooter>
+          </Card>
+          
+          {/* Pending Orders */}
+          <Card>
+            <CardHeader className="py-3">
+              <CardTitle className="text-lg">Pending Orders</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Instrument</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Price</TableHead>
+                    <TableHead></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pendingOrders.map(order => (
+                    <TableRow key={order.id}>
+                      <TableCell className="font-medium">
+                        {order.instrument}
+                        <div className="text-xs text-muted-foreground">
+                          {order.quantity} lots
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={
+                          order.type.includes("BUY") ? "border-green-500 text-green-500" : 
+                          "border-red-500 text-red-500"
+                        }>
+                          {order.type.replace("_", " ")}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {order.price}
+                      </TableCell>
+                      <TableCell>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="h-7 w-7 p-0"
+                          onClick={() => cancelOrder(order.id)}
+                        >
+                          <Trash className="h-3 w-3" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+            <CardFooter className="border-t py-2">
+              <Button variant="ghost" size="sm" className="text-xs h-7 w-full">
+                View All Orders
+              </Button>
+            </CardFooter>
+          </Card>
+          
           {/* Broker Connection UI */}
           <Card>
-            <CardHeader>
-              <CardTitle>Broker Connection</CardTitle>
-              <CardDescription>
-                Connect to your trading broker to execute live trades
-              </CardDescription>
+            <CardHeader className="py-3">
+              <CardTitle className="text-lg">Broker Connection</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="broker-select">Select Broker</Label>
-                  <Select 
-                    value={selectedBroker} 
-                    onValueChange={setSelectedBroker}
-                  >
-                    <SelectTrigger id="broker-select">
-                      <SelectValue placeholder="Select a broker" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="zerodha">Zerodha</SelectItem>
-                      <SelectItem value="fyers">Fyers</SelectItem>
-                      <SelectItem value="dhan">Dhan</SelectItem>
-                      <SelectItem value="angelone">Angel One</SelectItem>
-                      <SelectItem value="aliceblue">Alice Blue</SelectItem>
-                    </SelectContent>
-                  </Select>
+              <div className="space-y-3">
+                <div className="flex gap-2 items-center">
+                  <div className={`h-3 w-3 rounded-full 
+                    ${connectionStatus === 'connected' ? 'bg-green-500' : 
+                      connectionStatus === 'pending' ? 'bg-yellow-500' : 'bg-red-500'}`}>
+                  </div>
+                  <span className="text-sm">
+                    {connectionStatus === 'connected' 
+                      ? 'Connected to ' + selectedBroker
+                      : connectionStatus === 'pending' 
+                        ? 'Connecting...' 
+                        : 'Disconnected'}
+                  </span>
                 </div>
                 
-                <div className="space-y-2">
-                  <Label htmlFor="api-key">API Key</Label>
-                  <Input 
-                    id="api-key"
-                    placeholder="Enter your API key" 
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="secret-key">Secret Key</Label>
-                  <Input 
-                    id="secret-key"
-                    placeholder="Enter your secret key" 
-                    type="password"
-                    value={secretKey}
-                    onChange={(e) => setSecretKey(e.target.value)}
-                  />
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Switch 
-                    id="auto-reconnect"
-                    checked={autoReconnect}
-                    onCheckedChange={setAutoReconnect}
-                  />
-                  <Label htmlFor="auto-reconnect">Auto-Reconnect</Label>
-                </div>
+                <Select value={selectedBroker} onValueChange={setSelectedBroker}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Broker" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="zerodha">Zerodha</SelectItem>
+                    <SelectItem value="fyers">Fyers</SelectItem>
+                    <SelectItem value="dhan">Dhan</SelectItem>
+                    <SelectItem value="angelone">Angel One</SelectItem>
+                    <SelectItem value="aliceblue">Alice Blue</SelectItem>
+                  </SelectContent>
+                </Select>
                 
                 <Button 
                   onClick={testBrokerConnection} 
-                  disabled={!selectedBroker || !apiKey || !secretKey || isTestingConnection}
+                  disabled={!selectedBroker || isTestingConnection}
+                  variant="outline"
                   className="w-full"
                 >
                   {isTestingConnection ? (
                     <>
                       <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                      Testing Connection
+                      Testing
                     </>
                   ) : (
                     <>
                       <ExternalLink className="mr-2 h-4 w-4" />
-                      Test Connection
+                      Connect
                     </>
                   )}
                 </Button>
-
-                <div className="rounded-md border p-4">
-                  <div className="font-medium">Connection Status</div>
-                  <div className="mt-2 flex items-center">
-                    <div className={`h-3 w-3 rounded-full 
-                      ${connectionStatus === 'connected' ? 'bg-green-500' : 
-                        connectionStatus === 'pending' ? 'bg-yellow-500' : 'bg-red-500'} 
-                      mr-2`}>
-                    </div>
-                    <span>
-                      {connectionStatus === 'connected' 
-                        ? 'Connected' 
-                        : connectionStatus === 'pending' 
-                          ? 'Connecting...' 
-                          : 'Disconnected'}
-                    </span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        
+        {/* Main Panel */}
+        <div className="col-span-6 space-y-4">
+          {/* Order Book */}
+          <Card>
+            <CardHeader className="py-3 flex flex-row items-center justify-between">
+              <CardTitle className="text-lg">Order Book</CardTitle>
+              <Select defaultValue="NIFTY50">
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Symbol" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="NIFTY50">NIFTY 50</SelectItem>
+                  <SelectItem value="BANKNIFTY">BANK NIFTY</SelectItem>
+                  <SelectItem value="RELIANCE">RELIANCE</SelectItem>
+                  <SelectItem value="INFY">INFOSYS</SelectItem>
+                </SelectContent>
+              </Select>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <div className="text-sm font-medium text-green-500">Bids (Buy)</div>
+                  <div className="space-y-1">
+                    {bidOrders.map((order, index) => (
+                      <div key={index} className="flex justify-between text-sm border-b last:border-0 pb-1 last:pb-0">
+                        <span className="text-green-500 font-medium">{order.price}</span>
+                        <span>{order.volume}</span>
+                      </div>
+                    ))}
                   </div>
-                  {connectionStatus === 'connected' && (
-                    <div className="mt-4">
-                      <div className="text-sm text-muted-foreground">Connected to: <span className="font-medium">{selectedBroker}</span></div>
-                      <div className="text-sm text-muted-foreground">Account Balance: <span className="font-medium">₹125,000.00</span></div>
-                      <div className="text-sm text-muted-foreground">Last Updated: <span className="font-medium">Just now</span></div>
-                    </div>
-                  )}
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="text-sm font-medium text-red-500">Asks (Sell)</div>
+                  <div className="space-y-1">
+                    {askOrders.map((order, index) => (
+                      <div key={index} className="flex justify-between text-sm border-b last:border-0 pb-1 last:pb-0">
+                        <span className="text-red-500 font-medium">{order.price}</span>
+                        <span>{order.volume}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mt-3 flex justify-between items-center p-2 bg-muted rounded-md">
+                <div>
+                  <span className="text-xs text-muted-foreground">Spread:</span>
+                  <span className="text-sm ml-1">10 pts (0.05%)</span>
+                </div>
+                <div>
+                  <Badge className="bg-green-500">Bullish</Badge>
                 </div>
               </div>
             </CardContent>
           </Card>
-
-          {/* Risk Management Settings */}
+          
+          {/* Execution Panel */}
           <Card>
-            <CardHeader>
-              <CardTitle>Risk Management</CardTitle>
-              <CardDescription>
-                Control your trading risk parameters
-              </CardDescription>
+            <CardHeader className="py-3">
+              <CardTitle className="text-lg">Trade Execution</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="stock-search">Instrument</Label>
+                    <div className="relative">
+                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="stock-search"
+                        placeholder="Search for symbols..."
+                        className="pl-8"
+                        value={selectedStock}
+                        onChange={(e) => setSelectedStock(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Direction</Label>
+                    <ToggleGroup type="single" value={selectedOrderDirection} onValueChange={(value) => {
+                      if (value) setSelectedOrderDirection(value);
+                    }} className="justify-start w-full">
+                      <ToggleGroupItem value="buy" className="flex-1 bg-green-50 data-[state=on]:bg-green-500">Buy</ToggleGroupItem>
+                      <ToggleGroupItem value="sell" className="flex-1 bg-red-50 data-[state=on]:bg-red-500">Sell</ToggleGroupItem>
+                    </ToggleGroup>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="order-type">Order Type</Label>
+                    <Select 
+                      value={orderType} 
+                      onValueChange={setOrderType}
+                    >
+                      <SelectTrigger id="order-type">
+                        <SelectValue placeholder="Select order type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="market">Market</SelectItem>
+                        <SelectItem value="limit">Limit</SelectItem>
+                        <SelectItem value="stoploss">Stop Loss</SelectItem>
+                        <SelectItem value="oco">OCO (One Cancels Other)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="quantity">Quantity/Lots</Label>
+                    <div className="flex">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="rounded-r-none h-10 w-10"
+                        onClick={decreaseQuantity}
+                        disabled={quantity <= 1}
+                      >
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                      <Input
+                        id="quantity"
+                        type="number"
+                        value={quantity}
+                        onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                        className="rounded-none text-center"
+                        min={1}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="rounded-l-none h-10 w-10"
+                        onClick={increaseQuantity}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {orderType !== "market" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="price">Price</Label>
+                      <Input
+                        id="price"
+                        type="number"
+                        value={orderPrice}
+                        onChange={(e) => setOrderPrice(Number(e.target.value))}
+                      />
+                    </div>
+                  )}
+                  
+                  <Button 
+                    className={`w-full ${selectedOrderDirection === "buy" ? "bg-green-500 hover:bg-green-600" : "bg-red-500 hover:bg-red-600"}`}
+                    disabled={!selectedStock || !orderType}
+                    onClick={() => setShowOrderConfirmation(true)}
+                  >
+                    {selectedOrderDirection === "buy" ? "BUY" : "SELL"} {selectedStock || "INSTRUMENT"}
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="mt-4 p-3 bg-muted rounded-md">
+                <div className="text-sm font-medium mb-2">Position Sizing</div>
+                <div className="grid grid-cols-3 gap-2 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Risk:</span>
+                    <span className="ml-1">2%</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Est. Value:</span>
+                    <span className="ml-1">₹{(quantity * orderPrice).toLocaleString()}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Margin Req:</span>
+                    <span className="ml-1">₹{Math.round((quantity * orderPrice) / leverageLevel).toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          {/* Trade Logs */}
+          <Card>
+            <CardHeader className="py-3">
+              <CardTitle className="text-lg">Execution Logs</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Time</TableHead>
+                    <TableHead>Action</TableHead>
+                    <TableHead>Instrument</TableHead>
+                    <TableHead>Qty</TableHead>
+                    <TableHead>Price</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {tradeLogs.slice(0, 3).map(log => (
+                    <TableRow key={log.id}>
+                      <TableCell className="text-xs">{log.timestamp}</TableCell>
+                      <TableCell>
+                        <Badge className={log.action === "BUY" ? "bg-green-500" : "bg-red-500"}>
+                          {log.action}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-medium">{log.instrument}</TableCell>
+                      <TableCell>{log.quantity}</TableCell>
+                      <TableCell>{log.price}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <div className="h-2 w-2 rounded-full bg-green-500"></div>
+                          <span className="text-xs">{log.status}</span>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+            <CardFooter className="border-t py-2">
+              <Button variant="ghost" size="sm" className="text-xs h-7 w-full">
+                View All Logs
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
+        
+        {/* Right Panel */}
+        <div className="col-span-3 space-y-4">
+          {/* Trade Modifications & Risk Management */}
+          <Card>
+            <CardHeader className="py-3">
+              <CardTitle className="text-lg">Risk Management</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
                 <div className="space-y-2">
                   <Label htmlFor="max-loss-strategy">Max Loss Per Strategy (₹)</Label>
                   <Input 
@@ -385,527 +868,53 @@ const LiveTradingModule = () => {
                   />
                   <Label htmlFor="auto-liquidate">Auto-Liquidate on Breach</Label>
                 </div>
-
-                <Alert>
-                  <Shield className="h-4 w-4" />
-                  <AlertTitle>Risk Protection</AlertTitle>
-                  <AlertDescription>
-                    Your account is protected with auto-stop loss if risk parameters are breached.
-                  </AlertDescription>
-                </Alert>
               </div>
             </CardContent>
           </Card>
-        </div>
-
-        {/* Middle Column: Strategy Execution & Monitoring */}
-        <div className="space-y-6 md:col-span-2">
-          {/* Live Strategy Execution Table */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Active Strategies</CardTitle>
-              <CardDescription>
-                Monitor and manage your running trading strategies
-              </CardDescription>
+          
+          {/* Emergency Controls */}
+          <Card className="border-red-200">
+            <CardHeader className="py-3">
+              <CardTitle className="text-lg">Emergency Controls</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Strategy Name</TableHead>
-                      <TableHead>Symbol</TableHead>
-                      <TableHead>Position</TableHead>
-                      <TableHead>Entry Price</TableHead>
-                      <TableHead>Current Price</TableHead>
-                      <TableHead>P&L</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {strategies.map(strategy => (
-                      <TableRow key={strategy.id}>
-                        <TableCell className="font-medium">{strategy.name}</TableCell>
-                        <TableCell>{strategy.symbol}</TableCell>
-                        <TableCell>{strategy.position}</TableCell>
-                        <TableCell>{strategy.entryPrice > 0 ? `₹${strategy.entryPrice.toLocaleString()}` : '-'}</TableCell>
-                        <TableCell>{strategy.currentPrice > 0 ? `₹${strategy.currentPrice.toLocaleString()}` : '-'}</TableCell>
-                        <TableCell className={strategy.pnl > 0 ? 'text-green-500' : strategy.pnl < 0 ? 'text-red-500' : 'text-muted-foreground'}>
-                          {strategy.pnl !== 0 ? (strategy.pnl > 0 ? '+' : '') + `₹${strategy.pnl.toLocaleString()}` : '-'}
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={
-                            strategy.status === "active" ? "bg-green-500" : 
-                            strategy.status === "warning" ? "bg-yellow-500" : 
-                            "bg-gray-300"
-                          }>
-                            {strategy.status === "active" ? "Active" : 
-                             strategy.status === "warning" ? "Warning" : 
-                             "Paused"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => toggleStrategyStatus(strategy.id)}
-                            >
-                              {strategy.status === "active" ? (
-                                <Pause className="h-4 w-4" />
-                              ) : (
-                                <Play className="h-4 w-4" />
-                              )}
-                            </Button>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => closeStrategyPosition(strategy.id)}
-                              disabled={strategy.position === "No Position"}
-                            >
-                              <Trash className="h-4 w-4" />
-                            </Button>
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <Button variant="outline" size="sm">
-                                  <Info className="h-4 w-4" />
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent>
-                                <DialogHeader>
-                                  <DialogTitle>{strategy.name} Details</DialogTitle>
-                                  <DialogDescription>
-                                    Strategy running on {strategy.symbol}
-                                  </DialogDescription>
-                                </DialogHeader>
-                                <div className="space-y-4 py-4">
-                                  <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                      <h4 className="font-medium">Entry Conditions</h4>
-                                      <p className="text-sm text-muted-foreground">
-                                        {strategy.name === "Mean Reversion" 
-                                          ? "RSI below 30, price at support" 
-                                          : strategy.name === "Momentum Breakout"
-                                          ? "Price breakout above resistance with volume"
-                                          : strategy.name === "RSI Divergence"
-                                          ? "Positive RSI divergence on daily chart"
-                                          : "Price volatility > 2 standard deviations"}
-                                      </p>
-                                    </div>
-                                    <div>
-                                      <h4 className="font-medium">Exit Conditions</h4>
-                                      <p className="text-sm text-muted-foreground">
-                                        {strategy.name === "Mean Reversion" 
-                                          ? "RSI above 70 or 2% stop loss" 
-                                          : strategy.name === "Momentum Breakout"
-                                          ? "Trailing stop loss of 1.5% or price reversal"
-                                          : strategy.name === "RSI Divergence"
-                                          ? "RSI moves above 70 or 2.5% stop loss"
-                                          : "Volatility returns to normal range"}
-                                      </p>
-                                    </div>
-                                  </div>
-                                  
-                                  <div>
-                                    <h4 className="font-medium">Performance</h4>
-                                    <div className="mt-2 h-36 bg-gray-100 rounded-md flex items-center justify-center">
-                                      <p className="text-muted-foreground text-sm">Performance chart goes here</p>
-                                    </div>
-                                  </div>
-                                  
-                                  <div>
-                                    <h4 className="font-medium">Recent Trades</h4>
-                                    <div className="mt-2 space-y-2">
-                                      <div className="text-sm border-l-2 border-green-500 pl-2">Buy @ ₹{strategy.entryPrice} - 10:30 AM</div>
-                                      {strategy.pnl !== 0 && (
-                                        <div className="text-sm border-l-2 border-gray-300 pl-2">
-                                          Current P&L: 
-                                          <span className={strategy.pnl > 0 ? "text-green-500" : "text-red-500"}>
-                                            {" "}{strategy.pnl > 0 ? "+" : ""}₹{strategy.pnl}
-                                          </span>
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                              </DialogContent>
-                            </Dialog>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+              <div className="space-y-3">
+                <Button 
+                  variant="destructive" 
+                  className="w-full"
+                  onClick={emergencyPauseAllTrades}
+                >
+                  <PowerOff className="mr-2 h-4 w-4" />
+                  Emergency Stop All Trades
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  className="w-full border-red-200 text-red-500"
+                  onClick={() => {
+                    positions.forEach(p => closePosition(p.id));
+                  }}
+                >
+                  <Trash className="mr-2 h-4 w-4" />
+                  Close All Positions
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                >
+                  <ShieldAlert className="mr-2 h-4 w-4" />
+                  Freeze Account
+                </Button>
               </div>
             </CardContent>
           </Card>
-
-          {/* Trade Monitoring UI */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Trade Monitoring</CardTitle>
-                  <CardDescription>
-                    Visual insights into your trading performance
-                  </CardDescription>
-                </div>
-                <Tabs defaultValue="heatmap" value={activeTab} onValueChange={setActiveTab}>
-                  <TabsList>
-                    <TabsTrigger value="heatmap">Heatmap</TabsTrigger>
-                    <TabsTrigger value="performance">Performance</TabsTrigger>
-                    <TabsTrigger value="alerts">Alerts</TabsTrigger>
-                  </TabsList>
-                </Tabs>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {/* Each TabsContent must be within the same Tabs component as its TabsList */}
-              <Tabs value={activeTab} className="hidden">
-                <TabsContent value="heatmap" className="mt-0">
-                  <h3 className="text-lg font-medium mb-2">P&L Heatmap</h3>
-                  <div className="grid grid-cols-7 gap-2">
-                    {Array.from({ length: 28 }).map((_, i) => {
-                      // Randomly generate performance data
-                      const value = Math.random() * 100 - 50;
-                      let bgColor = 'bg-gray-200';
-                      
-                      if (value > 30) bgColor = 'bg-green-500';
-                      else if (value > 10) bgColor = 'bg-green-300';
-                      else if (value > 0) bgColor = 'bg-green-100';
-                      else if (value > -10) bgColor = 'bg-red-100';
-                      else if (value > -30) bgColor = 'bg-red-300';
-                      else bgColor = 'bg-red-500';
-                      
-                      return (
-                        <div key={i} className="group relative">
-                          <div 
-                            className={`${bgColor} h-12 rounded-md cursor-pointer hover:ring-2 hover:ring-primary`}
-                          ></div>
-                          <div className="absolute hidden group-hover:block bg-background border p-2 rounded-md shadow-lg z-10 -mt-1 left-1/2 transform -translate-x-1/2">
-                            <p className="text-xs font-medium">Day {i+1}</p>
-                            <p className={`text-xs ${value > 0 ? 'text-green-500' : 'text-red-500'}`}>
-                              {value > 0 ? '+' : ''}{value.toFixed(2)}%
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="performance" className="mt-0">
-                  <h3 className="text-lg font-medium mb-4">Strategy Performance</h3>
-                  <div className="h-60 bg-gray-100 rounded-md flex items-center justify-center">
-                    <p className="text-muted-foreground">Cumulative P&L chart goes here</p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 mt-4">
-                    <Card>
-                      <CardContent className="pt-6">
-                        <div className="text-2xl font-bold text-green-500">+₹4,500</div>
-                        <p className="text-sm text-muted-foreground">Today's P&L</p>
-                      </CardContent>
-                    </Card>
-                    <Card>
-                      <CardContent className="pt-6">
-                        <div className="text-2xl font-bold">75%</div>
-                        <p className="text-sm text-muted-foreground">Win Rate</p>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="alerts" className="mt-0">
-                  <h3 className="text-lg font-medium mb-4">System Alerts</h3>
-                  <div className="space-y-4">
-                    <Alert className="bg-yellow-50 border-yellow-200">
-                      <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                      <AlertTitle className="text-yellow-700">Slippage Warning</AlertTitle>
-                      <AlertDescription className="text-yellow-700">
-                        RSI Divergence strategy execution had 0.2% slippage on HDFCBANK entry.
-                      </AlertDescription>
-                    </Alert>
-                    
-                    <Alert className="bg-red-50 border-red-200">
-                      <ShieldAlert className="h-4 w-4 text-red-500" />
-                      <AlertTitle className="text-red-700">Risk Threshold Alert</AlertTitle>
-                      <AlertDescription className="text-red-700">
-                        RSI Divergence strategy approaching max loss threshold (75% reached).
-                      </AlertDescription>
-                    </Alert>
-                    
-                    <Alert className="bg-green-50 border-green-200">
-                      <Info className="h-4 w-4 text-green-500" />
-                      <AlertTitle className="text-green-700">Market Update</AlertTitle>
-                      <AlertDescription className="text-green-700">
-                        Market volatility decreasing, favorable conditions for mean reversion strategies.
-                      </AlertDescription>
-                    </Alert>
-                  </div>
-                </TabsContent>
-              </Tabs>
-
-              {/* Render content directly based on the active tab */}
-              {activeTab === "heatmap" && (
-                <div>
-                  <h3 className="text-lg font-medium mb-2">P&L Heatmap</h3>
-                  <div className="grid grid-cols-7 gap-2">
-                    {Array.from({ length: 28 }).map((_, i) => {
-                      // Randomly generate performance data
-                      const value = Math.random() * 100 - 50;
-                      let bgColor = 'bg-gray-200';
-                      
-                      if (value > 30) bgColor = 'bg-green-500';
-                      else if (value > 10) bgColor = 'bg-green-300';
-                      else if (value > 0) bgColor = 'bg-green-100';
-                      else if (value > -10) bgColor = 'bg-red-100';
-                      else if (value > -30) bgColor = 'bg-red-300';
-                      else bgColor = 'bg-red-500';
-                      
-                      return (
-                        <div key={i} className="group relative">
-                          <div 
-                            className={`${bgColor} h-12 rounded-md cursor-pointer hover:ring-2 hover:ring-primary`}
-                          ></div>
-                          <div className="absolute hidden group-hover:block bg-background border p-2 rounded-md shadow-lg z-10 -mt-1 left-1/2 transform -translate-x-1/2">
-                            <p className="text-xs font-medium">Day {i+1}</p>
-                            <p className={`text-xs ${value > 0 ? 'text-green-500' : 'text-red-500'}`}>
-                              {value > 0 ? '+' : ''}{value.toFixed(2)}%
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-              
-              {activeTab === "performance" && (
-                <div>
-                  <h3 className="text-lg font-medium mb-4">Strategy Performance</h3>
-                  <div className="h-60 bg-gray-100 rounded-md flex items-center justify-center">
-                    <p className="text-muted-foreground">Cumulative P&L chart goes here</p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 mt-4">
-                    <Card>
-                      <CardContent className="pt-6">
-                        <div className="text-2xl font-bold text-green-500">+₹4,500</div>
-                        <p className="text-sm text-muted-foreground">Today's P&L</p>
-                      </CardContent>
-                    </Card>
-                    <Card>
-                      <CardContent className="pt-6">
-                        <div className="text-2xl font-bold">75%</div>
-                        <p className="text-sm text-muted-foreground">Win Rate</p>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </div>
-              )}
-              
-              {activeTab === "alerts" && (
-                <div>
-                  <h3 className="text-lg font-medium mb-4">System Alerts</h3>
-                  <div className="space-y-4">
-                    <Alert className="bg-yellow-50 border-yellow-200">
-                      <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                      <AlertTitle className="text-yellow-700">Slippage Warning</AlertTitle>
-                      <AlertDescription className="text-yellow-700">
-                        RSI Divergence strategy execution had 0.2% slippage on HDFCBANK entry.
-                      </AlertDescription>
-                    </Alert>
-                    
-                    <Alert className="bg-red-50 border-red-200">
-                      <ShieldAlert className="h-4 w-4 text-red-500" />
-                      <AlertTitle className="text-red-700">Risk Threshold Alert</AlertTitle>
-                      <AlertDescription className="text-red-700">
-                        RSI Divergence strategy approaching max loss threshold (75% reached).
-                      </AlertDescription>
-                    </Alert>
-                    
-                    <Alert className="bg-green-50 border-green-200">
-                      <Info className="h-4 w-4 text-green-500" />
-                      <AlertTitle className="text-green-700">Market Update</AlertTitle>
-                      <AlertDescription className="text-green-700">
-                        Market volatility decreasing, favorable conditions for mean reversion strategies.
-                      </AlertDescription>
-                    </Alert>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Manual Trade Execution Panel */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Manual Trade Execution</CardTitle>
-              <CardDescription>
-                Place individual orders directly to your broker
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="stock-search">Stock/Instrument</Label>
-                    <div className="relative">
-                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="stock-search"
-                        placeholder="Search for stocks..."
-                        className="pl-8"
-                        value={selectedStock}
-                        onChange={(e) => setSelectedStock(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label>Order Direction</Label>
-                    <ToggleGroup type="single" value={selectedOrderDirection} onValueChange={(value) => {
-                      if (value) setSelectedOrderDirection(value);
-                    }} className="justify-start">
-                      <ToggleGroupItem value="buy" className="flex-1">Buy</ToggleGroupItem>
-                      <ToggleGroupItem value="sell" className="flex-1">Sell</ToggleGroupItem>
-                    </ToggleGroup>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="order-type">Order Type</Label>
-                    <Select 
-                      value={orderType} 
-                      onValueChange={setOrderType}
-                    >
-                      <SelectTrigger id="order-type">
-                        <SelectValue placeholder="Select order type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="market">Market</SelectItem>
-                        <SelectItem value="limit">Limit</SelectItem>
-                        <SelectItem value="stoploss">Stop Loss</SelectItem>
-                        <SelectItem value="bracket">Bracket Order</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="quantity">Quantity/Lots</Label>
-                    <div className="flex">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        className="rounded-r-none"
-                        onClick={decreaseQuantity}
-                        disabled={quantity <= 1}
-                      >
-                        <Minus className="h-4 w-4" />
-                        <span className="sr-only">Decrease</span>
-                      </Button>
-                      <Input
-                        id="quantity"
-                        type="number"
-                        value={quantity}
-                        onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-                        className="rounded-none text-center"
-                        min={1}
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        className="rounded-l-none"
-                        onClick={increaseQuantity}
-                      >
-                        <Plus className="h-4 w-4" />
-                        <span className="sr-only">Increase</span>
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2 mb-4">
-                    <Switch id="leverage" />
-                    <Label htmlFor="leverage">Use Leverage</Label>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Button 
-                      className="w-full"
-                      disabled={!selectedStock || !orderType}
-                      onClick={() => setShowOrderConfirmation(true)}
-                    >
-                      Place Order
-                    </Button>
-                    
-                    <Button 
-                      variant="outline" 
-                      className="w-full"
-                      disabled={!selectedStock}
-                    >
-                      <ArrowRightLeft className="mr-2 h-4 w-4" />
-                      Reverse Position
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          
+          {/* Recent Backtests */}
+          <DashboardRecentBacktests />
         </div>
       </div>
-
-      {/* Execution Logs */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Execution Logs</CardTitle>
-          <CardDescription>
-            Recent trade executions and signals
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="border-l-4 border-green-500 pl-4 py-2">
-              <div className="flex justify-between">
-                <span className="font-medium">BUY EXECUTED</span>
-                <span className="text-sm text-muted-foreground">18 minutes ago</span>
-              </div>
-              <p className="text-sm">Mean Reversion • NIFTY50</p>
-              <p className="text-sm text-muted-foreground">Buy 2 lots @ ₹18,500</p>
-            </div>
-
-            <div className="border-l-4 border-red-500 pl-4 py-2">
-              <div className="flex justify-between">
-                <span className="font-medium">SELL EXECUTED</span>
-                <span className="text-sm text-muted-foreground">2 hours ago</span>
-              </div>
-              <p className="text-sm">Momentum Breakout • RELIANCE</p>
-              <p className="text-sm text-muted-foreground">Sell 1 lot @ ₹2,420</p>
-            </div>
-
-            <div className="border-l-4 border-yellow-500 pl-4 py-2">
-              <div className="flex justify-between">
-                <span className="font-medium">WARNING</span>
-                <span className="text-sm text-muted-foreground">3 hours ago</span>
-              </div>
-              <p className="text-sm">RSI Divergence • HDFCBANK</p>
-              <p className="text-sm text-muted-foreground">Slippage of 0.2% detected on entry</p>
-            </div>
-
-            <div className="border-l-4 border-gray-400 pl-4 py-2">
-              <div className="flex justify-between">
-                <span className="font-medium">STRATEGY PAUSED</span>
-                <span className="text-sm text-muted-foreground">Yesterday</span>
-              </div>
-              <p className="text-sm">Volatility Breakout • BANKNIFTY</p>
-              <p className="text-sm text-muted-foreground">Manually paused by user</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
+      
       {/* Order Confirmation Dialog */}
       <Dialog open={showOrderConfirmation} onOpenChange={setShowOrderConfirmation}>
         <DialogContent>
@@ -933,7 +942,7 @@ const LiveTradingModule = () => {
               <span className="capitalize">{orderType}</span>
               
               <span className="text-sm font-medium">Estimated Value:</span>
-              <span>₹{(quantity * 18500).toLocaleString()}</span>
+              <span>₹{(quantity * orderPrice).toLocaleString()}</span>
             </div>
           </div>
           
@@ -941,7 +950,10 @@ const LiveTradingModule = () => {
             <Button variant="outline" onClick={() => setShowOrderConfirmation(false)}>
               Cancel
             </Button>
-            <Button onClick={placeManualOrder}>
+            <Button 
+              onClick={placeManualOrder}
+              className={selectedOrderDirection === "buy" ? "bg-green-500 hover:bg-green-600" : "bg-red-500 hover:bg-red-600"}
+            >
               Confirm & Execute
             </Button>
           </DialogFooter>
