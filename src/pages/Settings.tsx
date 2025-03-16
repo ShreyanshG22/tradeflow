@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -804,4 +805,47 @@ const Settings = () => {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="order-book-depth">Order Book Depth</Label>
-                      <Select defaultValue="
+                      <Select defaultValue="10">
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select depth" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="5">5 Levels</SelectItem>
+                          <SelectItem value="10">10 Levels</SelectItem>
+                          <SelectItem value="15">15 Levels</SelectItem>
+                          <SelectItem value="20">20 Levels</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </div>
+      </div>
+      
+      {/* Emergency Stop Confirmation Dialog */}
+      <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-destructive">Emergency Stop</DialogTitle>
+            <DialogDescription>
+              This will immediately halt all automated trading activity. Are you sure?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmEmergencyStop}>
+              Stop All Trading
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default Settings;
