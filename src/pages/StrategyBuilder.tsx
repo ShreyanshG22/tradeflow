@@ -5,7 +5,7 @@ import { StrategyBlocks } from "@/components/strategy-builder/StrategyBlocks";
 import { StrategyCanvas } from "@/components/strategy-builder/StrategyCanvas";
 import { StrategyPreview } from "@/components/strategy-builder/StrategyPreview";
 import { Button } from "@/components/ui/button";
-import { Save, Play, RotateCcw, Undo, Redo, Trash2 } from "lucide-react";
+import { Save, Play, RotateCcw, Undo, Redo, Trash2, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -35,6 +35,11 @@ const StrategyBuilder = () => {
     <div className="flex flex-col h-screen">
       <header className="border-b py-4 px-6 flex items-center justify-between bg-background">
         <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" asChild className="mr-2">
+            <Link to="/dashboard">
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+          </Button>
           <div>
             <Input 
               value={strategyName} 

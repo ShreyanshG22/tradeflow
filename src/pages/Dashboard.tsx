@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { 
@@ -23,7 +22,8 @@ import {
   ChevronRight,
   AlertTriangle,
   CheckCircle,
-  Bot
+  Bot,
+  ArrowLeft
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -52,7 +52,6 @@ import { DashboardActiveStrategies } from "@/components/dashboard/ActiveStrategi
 import { DashboardRecentBacktests } from "@/components/dashboard/RecentBacktests";
 
 const Dashboard = () => {
-  // Update the page title
   useEffect(() => {
     document.title = "Dashboard | TradeFlow";
   }, []);
@@ -67,10 +66,15 @@ const Dashboard = () => {
         <AppSidebar />
         
         <div className="flex-1 flex flex-col">
-          {/* Top Bar */}
           <div className="h-16 border-b bg-background/95 backdrop-blur-sm fixed top-0 left-0 right-0 z-10 flex items-center justify-between px-4 md:px-6">
             <div className="flex items-center gap-4">
               <SidebarTrigger className="md:hidden" />
+              
+              <Button variant="ghost" size="icon" asChild className="mr-2">
+                <Link to="/">
+                  <ArrowLeft className="h-4 w-4" />
+                </Link>
+              </Button>
               
               <div className="hidden md:flex items-center gap-2 min-w-[200px]">
                 <Select value={activeStrategy} onValueChange={setActiveStrategy}>
@@ -134,11 +138,9 @@ const Dashboard = () => {
             </div>
           </div>
           
-          {/* Main Content */}
           <SidebarInset className="pt-16">
             <div className="container px-4 md:px-6">
               <div className="py-6 space-y-8">
-                {/* Page Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div>
                     <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
@@ -160,7 +162,6 @@ const Dashboard = () => {
                   </div>
                 </div>
                 
-                {/* Stats Overview */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <Card>
                     <CardHeader className="pb-2">
@@ -215,11 +216,8 @@ const Dashboard = () => {
                   </Card>
                 </div>
                 
-                {/* Main Content Grid */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  {/* Left Panel - Main Charts */}
                   <div className="lg:col-span-2 space-y-6">
-                    {/* Performance Chart */}
                     <Card>
                       <CardHeader className="pb-2 flex flex-row items-center justify-between">
                         <div>
@@ -239,10 +237,8 @@ const Dashboard = () => {
                       </CardContent>
                     </Card>
                     
-                    {/* Market Overview */}
                     <DashboardMarketOverview />
                     
-                    {/* Recent Trades */}
                     <Card>
                       <CardHeader className="pb-2 flex flex-row items-center justify-between">
                         <div>
@@ -298,16 +294,12 @@ const Dashboard = () => {
                       </CardFooter>
                     </Card>
                   </div>
-
-                  {/* Right Panel - Active Strategies & Other Info */}
+                  
                   <div className="space-y-6">
-                    {/* Active Strategies */}
                     <DashboardActiveStrategies />
                     
-                    {/* Recent Backtests */}
                     <DashboardRecentBacktests />
                     
-                    {/* Notifications & Alerts */}
                     <Card>
                       <CardHeader className="pb-2">
                         <CardTitle>Alerts & Notifications</CardTitle>
@@ -356,7 +348,6 @@ const Dashboard = () => {
             </div>
           </SidebarInset>
           
-          {/* Floating Action Button */}
           <div className="fixed bottom-8 right-8 flex flex-col gap-2">
             <Button asChild size="icon" className="rounded-full h-14 w-14 shadow-lg">
               <Link to="/strategy-builder">
@@ -451,4 +442,3 @@ const AppSidebar = () => {
 };
 
 export default Dashboard;
-

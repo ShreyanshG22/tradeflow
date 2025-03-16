@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { BacktestingForm } from "@/components/backtesting/BacktestingForm";
@@ -127,7 +126,7 @@ const BacktestingModule = () => {
       <header className="border-b py-4 px-6 flex items-center justify-between bg-background">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" asChild>
-            <Link to="/strategy-builder">
+            <Link to="/dashboard">
               <ArrowLeft className="h-4 w-4" />
             </Link>
           </Button>
