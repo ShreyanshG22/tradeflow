@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -40,7 +39,8 @@ import {
   Bell,
   BellRing,
   AlarmClock,
-  Bookmark
+  Bookmark,
+  Pencil
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -70,14 +70,13 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Separator } from "@/components/ui/separator";
 import { DashboardRecentBacktests } from "@/components/dashboard/RecentBacktests";
+import { Calendar } from "@/components/ui/calendar";
 
 const LiveTradingModule = () => {
-  // Update the page title
   useEffect(() => {
     document.title = "Live Trading | TradeFlow";
   }, []);
 
-  // Top Bar States
   const [selectedStrategy, setSelectedStrategy] = useState<string>("algo");
   const [strategyStatus, setStrategyStatus] = useState<"active" | "pending" | "stopped">("active");
   const [selectedMarket, setSelectedMarket] = useState<string>("stocks");
@@ -90,7 +89,6 @@ const LiveTradingModule = () => {
   const [sessionDuration, setSessionDuration] = useState<string>("02:45:18");
   const [autoHedgeEnabled, setAutoHedgeEnabled] = useState<boolean>(false);
 
-  // Left sidebar - Active Strategies
   const [activeStrategies, setActiveStrategies] = useState([
     { 
       id: 1, 
@@ -137,7 +135,6 @@ const LiveTradingModule = () => {
 
   const [activeStrategyFilter, setActiveStrategyFilter] = useState<string>("all");
 
-  // Broker connection states
   const [brokerConnected, setBrokerConnected] = useState<boolean>(false);
   const [connectionStatus, setConnectionStatus] = useState<"connected" | "pending" | "disconnected">("disconnected");
   const [selectedBroker, setSelectedBroker] = useState<string>("");
@@ -146,7 +143,6 @@ const LiveTradingModule = () => {
   const [isTestingConnection, setIsTestingConnection] = useState<boolean>(false);
   const [autoReconnect, setAutoReconnect] = useState<boolean>(true);
 
-  // Order Book States
   const [bidOrders, setBidOrders] = useState([
     { price: 18495, volume: 125 },
     { price: 18490, volume: 230 },
@@ -163,7 +159,6 @@ const LiveTradingModule = () => {
     { price: 18525, volume: 275 },
   ]);
 
-  // Position and Order States
   const [positions, setPositions] = useState([
     {
       id: 1, 
@@ -227,7 +222,6 @@ const LiveTradingModule = () => {
     }
   ]);
 
-  // Strategy execution metrics
   const [executionMetrics, setExecutionMetrics] = useState({
     realizedPnL: 2500,
     unrealizedPnL: -500,
@@ -240,7 +234,6 @@ const LiveTradingModule = () => {
     winRate: "62.5%"
   });
 
-  // Manual trading states
   const [selectedStock, setSelectedStock] = useState<string>("");
   const [orderType, setOrderType] = useState<string>("market");
   const [quantity, setQuantity] = useState<number>(1);
@@ -249,12 +242,10 @@ const LiveTradingModule = () => {
   const [orderPrice, setOrderPrice] = useState<number>(18500);
   const [showKillSwitchConfirmation, setShowKillSwitchConfirmation] = useState<boolean>(false);
 
-  // Risk management states
   const [maxLossPerStrategy, setMaxLossPerStrategy] = useState<number>(1000);
   const [maxDailyDrawdown, setMaxDailyDrawdown] = useState<number>(5000);
   const [autoLiquidateOnBreach, setAutoLiquidateOnBreach] = useState<boolean>(true);
 
-  // Trade logs state
   const [tradeLogs, setTradeLogs] = useState([
     {
       id: 1,
@@ -291,7 +282,6 @@ const LiveTradingModule = () => {
     }
   ]);
 
-  // Market Data states
   const [recentMarketTrades, setRecentMarketTrades] = useState([
     { time: "14:02:05", price: 18505, volume: 100, side: "buy" },
     { time: "14:02:01", price: 18503, volume: 75, side: "buy" },
@@ -300,19 +290,16 @@ const LiveTradingModule = () => {
     { time: "14:01:50", price: 18495, volume: 120, side: "buy" },
   ]);
 
-  // Alerts states
   const [alerts, setAlerts] = useState([
     { id: 1, type: "warning", message: "NIFTY50 approaching stop loss level", time: "14:01:30" },
     { id: 2, type: "info", message: "Order executed: Buy 5 HDFCBANK at 1580", time: "13:45:11" },
     { id: 3, type: "error", message: "Execution failed: Sell 2 INFY at 1520", time: "13:30:22" },
   ]);
 
-  // Mock function to test broker connection
   const testBrokerConnection = () => {
     setIsTestingConnection(true);
     setConnectionStatus("pending");
     
-    // Simulate API call
     setTimeout(() => {
       setIsTestingConnection(false);
       setBrokerConnected(true);
@@ -326,7 +313,6 @@ const LiveTradingModule = () => {
     }, 1500);
   };
 
-  // Toggle strategy status
   const toggleStrategyStatus = (id: number) => {
     setActiveStrategies(activeStrategies.map(strategy => {
       if (strategy.id === id) {
@@ -344,12 +330,10 @@ const LiveTradingModule = () => {
     }));
   };
 
-  // Emergency stop function
   const emergencyPauseAllTrades = () => {
     setShowKillSwitchConfirmation(false);
     setStrategyStatus("stopped");
     
-    // Set all active strategies to paused
     setActiveStrategies(activeStrategies.map(strategy => ({ ...strategy, status: "paused" })));
     
     toast({
@@ -359,7 +343,6 @@ const LiveTradingModule = () => {
     });
   };
 
-  // Close position function
   const closePosition = (id: number) => {
     const position = positions.find(p => p.id === id);
     
@@ -372,7 +355,6 @@ const LiveTradingModule = () => {
         variant: "default",
       });
       
-      // Add to trade log
       setTradeLogs([
         {
           id: tradeLogs.length + 1,
@@ -390,7 +372,6 @@ const LiveTradingModule = () => {
     }
   };
 
-  // Cancel order function
   const cancelOrder = (id: number) => {
     const order = pendingOrders.find(o => o.id === id);
     
@@ -405,11 +386,9 @@ const LiveTradingModule = () => {
     }
   };
 
-  // Place manual order function
   const placeManualOrder = () => {
     setShowOrderConfirmation(false);
     
-    // Add to positions
     if (selectedStock) {
       const newPosition = {
         id: positions.length + 1,
@@ -427,7 +406,6 @@ const LiveTradingModule = () => {
       
       setPositions([...positions, newPosition]);
       
-      // Add to trade log
       setTradeLogs([
         {
           id: tradeLogs.length + 1,
@@ -451,27 +429,22 @@ const LiveTradingModule = () => {
     }
   };
 
-  // Increase quantity handler
   const increaseQuantity = () => {
     setQuantity(prev => prev + 1);
   };
 
-  // Decrease quantity handler
   const decreaseQuantity = () => {
     if (quantity > 1) {
       setQuantity(prev => prev - 1);
     }
   };
 
-  // Filter strategy handler
   const filterStrategies = (filter: string) => {
     setActiveStrategyFilter(filter);
-    // In a real app, you would apply the filter to your strategies list
   };
 
   return (
     <div className="container p-4 mx-auto">
-      {/* Top Bar */}
       <div className="grid grid-cols-12 gap-3 mb-4">
         <div className="col-span-3 flex items-center gap-2">
           <div>
@@ -557,11 +530,8 @@ const LiveTradingModule = () => {
         </div>
       </div>
       
-      {/* Main Content Area */}
       <div className="grid grid-cols-12 gap-4">
-        {/* Left Sidebar - Strategy List */}
         <div className="col-span-3 space-y-4">
-          {/* Active Strategies */}
           <Card>
             <CardHeader className="py-3">
               <div className="flex justify-between items-center">
@@ -642,7 +612,6 @@ const LiveTradingModule = () => {
             </CardFooter>
           </Card>
           
-          {/* Historical Strategies */}
           <Card>
             <CardHeader className="py-3">
               <CardTitle className="text-lg">Historical Strategies</CardTitle>
@@ -687,7 +656,6 @@ const LiveTradingModule = () => {
             </CardFooter>
           </Card>
           
-          {/* Broker Connection UI */}
           <Card>
             <CardHeader className="py-3">
               <CardTitle className="text-lg">Broker Connection</CardTitle>
@@ -744,9 +712,7 @@ const LiveTradingModule = () => {
           </Card>
         </div>
         
-        {/* Main Panel */}
         <div className="col-span-6 space-y-4">
-          {/* Strategy Execution Metrics */}
           <Card>
             <CardHeader className="py-3">
               <div className="flex justify-between items-center">
@@ -825,7 +791,6 @@ const LiveTradingModule = () => {
             </CardContent>
           </Card>
           
-          {/* Open Positions */}
           <Card>
             <CardHeader className="py-3">
               <CardTitle className="text-lg">Open Positions</CardTitle>
@@ -895,7 +860,6 @@ const LiveTradingModule = () => {
             </CardContent>
           </Card>
           
-          {/* Pending Orders */}
           <Card>
             <CardHeader className="py-3">
               <CardTitle className="text-lg">Pending Orders</CardTitle>
@@ -971,7 +935,6 @@ const LiveTradingModule = () => {
             </CardContent>
           </Card>
           
-          {/* Execution Panel */}
           <Card>
             <CardHeader className="py-3">
               <CardTitle className="text-lg">Manual Order Execution</CardTitle>
@@ -1099,9 +1062,7 @@ const LiveTradingModule = () => {
           </Card>
         </div>
         
-        {/* Right Panel */}
         <div className="col-span-3 space-y-4">
-          {/* Order Book / Market Data */}
           <Card>
             <CardHeader className="py-3">
               <div className="flex justify-between items-center">
@@ -1173,7 +1134,6 @@ const LiveTradingModule = () => {
             </CardContent>
           </Card>
           
-          {/* Alerts Feed */}
           <Card>
             <CardHeader className="py-3">
               <div className="flex justify-between items-center">
@@ -1187,7 +1147,7 @@ const LiveTradingModule = () => {
               <div className="space-y-2">
                 {alerts.map(alert => (
                   <Alert key={alert.id} variant={
-                    alert.type === "warning" ? "warning" : 
+                    alert.type === "warning" ? "default" : 
                     alert.type === "error" ? "destructive" : 
                     "default"
                   } className="py-2">
@@ -1211,7 +1171,6 @@ const LiveTradingModule = () => {
             </CardFooter>
           </Card>
           
-          {/* Trade Modifications & Risk Management */}
           <Card>
             <CardHeader className="py-3">
               <CardTitle className="text-lg">Risk Management</CardTitle>
@@ -1250,7 +1209,6 @@ const LiveTradingModule = () => {
             </CardContent>
           </Card>
           
-          {/* Trade Logs */}
           <Card>
             <CardHeader className="py-3">
               <CardTitle className="text-lg">Execution Logs</CardTitle>
@@ -1295,7 +1253,6 @@ const LiveTradingModule = () => {
         </div>
       </div>
       
-      {/* Order Confirmation Dialog */}
       <Dialog open={showOrderConfirmation} onOpenChange={setShowOrderConfirmation}>
         <DialogContent>
           <DialogHeader>
@@ -1340,7 +1297,6 @@ const LiveTradingModule = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Kill Switch Confirmation Dialog */}
       <Dialog open={showKillSwitchConfirmation} onOpenChange={setShowKillSwitchConfirmation}>
         <DialogContent>
           <DialogHeader>
