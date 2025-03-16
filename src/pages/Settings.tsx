@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -50,9 +50,42 @@ const Settings = () => {
 
   const [loading, setLoading] = useState(false);
   const [activeSettingCategory, setActiveSettingCategory] = useState("account");
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => {
+    // Initialize darkMode state based on document class or localStorage
+    if (document.documentElement.classList.contains('dark')) {
+      return true;
+    }
+    const savedTheme = localStorage.getItem('theme');
+    return savedTheme === 'dark';
+  });
   const [liveNotifications, setLiveNotifications] = useState(true);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  
+  // Audio reference for notification toggle sound
+  const notificationSoundRef = useRef<HTMLAudioElement | null>(null);
+  
+  useEffect(() => {
+    // Create audio element for notification toggle sound
+    notificationSoundRef.current = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAB9AP//");
+    
+    return () => {
+      // Cleanup
+      if (notificationSoundRef.current) {
+        notificationSoundRef.current = null;
+      }
+    };
+  }, []);
+  
+  // Effect to handle theme changes
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [darkMode]);
 
   const saveSettings = () => {
     setLoading(true);
@@ -77,6 +110,23 @@ const Settings = () => {
       variant: "destructive",
     });
     setConfirmDialogOpen(false);
+  };
+  
+  const handleNotificationToggle = (checked: boolean) => {
+    setLiveNotifications(checked);
+    
+    // Play sound when turning notifications ON
+    if (checked && notificationSoundRef.current) {
+      notificationSoundRef.current.play().catch(err => {
+        console.error("Error playing notification sound:", err);
+      });
+      
+      // Show toast when notifications are turned on
+      toast({
+        title: "Notifications enabled",
+        description: "You will now receive real-time trading notifications.",
+      });
+    }
   };
 
   const SettingsSidebar = () => (
@@ -214,7 +264,7 @@ const Settings = () => {
               <Switch
                 id="notifications-toggle"
                 checked={liveNotifications}
-                onCheckedChange={setLiveNotifications}
+                onCheckedChange={handleNotificationToggle}
               />
               <Bell size={18} />
             </div>
