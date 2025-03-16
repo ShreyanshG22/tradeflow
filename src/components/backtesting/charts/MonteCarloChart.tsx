@@ -2,14 +2,21 @@
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Line, LineChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
+// Define a proper type for our data
+interface MonteCarloDataPoint {
+  period: number;
+  actual?: number; // Make this optional since it's only added to main simulation
+  [key: string]: number | undefined; // For dynamic sim0, sim1, etc. properties
+}
+
 // Generate Monte Carlo simulation data
 const generateMonteCarloData = () => {
   const numSimulations = 50;
   const numPeriods = 100;
   const baseEquity = 100000;
   
-  // Create data array with one entry per period
-  const data = Array.from({ length: numPeriods }, (_, i) => ({ 
+  // Create data array with one entry per period with proper typing
+  const data: MonteCarloDataPoint[] = Array.from({ length: numPeriods }, (_, i) => ({ 
     period: i + 1, 
   }));
   
@@ -38,7 +45,7 @@ const generateMonteCarloData = () => {
       
       // Add this equity value to the data array
       data[period][`sim${sim}`] = equity;
-      data[period][`color${sim}`] = lineColor;
+      data[period][`color${sim}`] = lineColor as number;
       
       // Mark the main simulation
       if (isMainSim) {

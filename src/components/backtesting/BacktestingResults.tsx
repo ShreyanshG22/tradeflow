@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,7 +13,7 @@ import { TradingMetricsTable } from "./TradingMetricsTable";
 import { TradeList } from "./TradeList";
 import { HeatmapChart } from "./charts/HeatmapChart";
 import { MonteCarloChart } from "./charts/MonteCarloChart";
-import { Download, Share, Zap, Robot, Info, BarChart4, ChartLine, Flame, Dice6 } from "lucide-react";
+import { Download, Share, Zap, Bot, Info, BarChart4, ChartLine, Flame, Dice6 } from "lucide-react";
 
 interface BacktestingResultsProps {
   hasResults: boolean;
@@ -27,7 +26,6 @@ export function BacktestingResults({ hasResults, isRunning = false, progress = 0
   const [showOptimizationPanel, setShowOptimizationPanel] = useState(false);
   
   useEffect(() => {
-    // If we have results, show the optimization panel after a short delay
     if (hasResults && !isRunning) {
       const timer = setTimeout(() => {
         setShowOptimizationPanel(true);
@@ -36,7 +34,6 @@ export function BacktestingResults({ hasResults, isRunning = false, progress = 0
       return () => clearTimeout(timer);
     }
     
-    // Hide the panel when running a new backtest
     if (isRunning) {
       setShowOptimizationPanel(false);
     }
@@ -55,7 +52,6 @@ export function BacktestingResults({ hasResults, isRunning = false, progress = 0
     );
   }
   
-  // Show loading state while backtest is running
   if (isRunning) {
     return (
       <ScrollArea className="h-full w-full">
@@ -362,7 +358,7 @@ export function BacktestingResults({ hasResults, isRunning = false, progress = 0
           <div className="p-4">
             <div className="flex items-center justify-between">
               <h3 className="font-medium flex items-center">
-                <Robot className="h-4 w-4 mr-2" />
+                <Bot className="h-4 w-4 mr-2" />
                 AI Suggestions
               </h3>
               <Button variant="ghost" size="sm">Refresh</Button>
