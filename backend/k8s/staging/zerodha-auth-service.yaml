@@ -1,0 +1,94 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zerodha-auth-service
+  namespace: zerodha-staging
+  labels:
+    app: zerodha-auth-service
+    app.kubernetes.io/name: tradeflow-zerodha
+    app.kubernetes.io/component: auth-service
+    app.kubernetes.io/part-of: tradeflow
+    environment: staging
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: zerodha-auth-service
+  template:
+    metadata:
+      labels:
+        app: zerodha-auth-service
+        app.kubernetes.io/name: tradeflow-zerodha
+        app.kubernetes.io/component: auth-service
+        app.kubernetes.io/part-of: tradeflow
+        environment: staging
+    spec:
+      containers:
+      - name: zerodha-auth-service
+        image: ghcr.io/tradeflow/zerodha-zerodha-auth-service:latest
+        ports:
+        - containerPort: 3009
+          name: http
+        env:
+        - name: PORT
+          value: "3009"
+        - name: POSTGRES_URL
+          value: "postgresql://tradeflow:$(POSTGRES_PASSWORD)@postgres:5432/tradeflow"
+        - name: REDIS_URL
+          value: "redis://:$(REDIS_PASSWORD)@redis:6379"
+        envFrom:
+        - configMapRef:
+            name: zerodha-config
+        - secretRef:
+            name: zerodha-secrets
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3009
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3009
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        volumeMounts:
+        - name: logs
+          mountPath: /app/logs
+      volumes:
+      - name: logs
+        emptyDir: {}
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zerodha-auth-service
+  namespace: zerodha-staging
+  labels:
+    app: zerodha-auth-service
+    app.kubernetes.io/name: tradeflow-zerodha
+    app.kubernetes.io/component: auth-service
+    app.kubernetes.io/part-of: tradeflow
+    environment: staging
+spec:
+  selector:
+    app: zerodha-auth-service
+  ports:
+  - port: 3009
+    targetPort: 3009
+    protocol: TCP
+    name: http
+  type: ClusterIP

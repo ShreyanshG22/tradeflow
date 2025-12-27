@@ -1,0 +1,208 @@
+version: '3.8'
+
+services:
+  # Database Services
+  postgres:
+    image: postgres:15-alpine
+    container_name: tradeflow-postgres
+    environment:
+      POSTGRES_DB: tradeflow
+      POSTGRES_USER: tradeflow
+      POSTGRES_PASSWORD: tradeflow_dev_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d
+      - ./database/schema:/docker-entrypoint-initdb.d/schema
+    networks:
+      - tradeflow-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tradeflow -d tradeflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: tradeflow-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf
+    command: redis-server /usr/local/etc/redis/redis.conf
+    networks:
+      - tradeflow-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: .
+      dockerfile: docker/api-gateway/Dockerfile
+      target: development
+    container_name: tradeflow-api-gateway
+    ports:
+      - "3000:3000"
+      - "9229:9229"  # Debug port
+    volumes:
+      - ./services/api-gateway:/app
+      - /app/node_modules
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      POSTGRES_URL: postgresql://tradeflow:tradeflow_dev_password@postgres:5432/tradeflow
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - tradeflow-network
+    restart: unless-stopped
+
+  # User Service
+  user-service:
+    build:
+      context: .
+      dockerfile: docker/user-service/Dockerfile
+      target: development
+    container_name: tradeflow-user-service
+    ports:
+      - "3001:3001"
+      - "9230:9229"  # Debug port
+    volumes:
+      - ./services/user-service:/app
+      - /app/node_modules
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      POSTGRES_URL: postgresql://tradeflow:tradeflow_dev_password@postgres:5432/tradeflow
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - tradeflow-network
+    restart: unless-stopped
+
+  # Strategy Service
+  strategy-service:
+    build:
+      context: .
+      dockerfile: docker/strategy-service/Dockerfile
+      target: development
+    container_name: tradeflow-strategy-service
+    ports:
+      - "3002:3002"
+      - "9231:9229"  # Debug port
+    volumes:
+      - ./services/strategy-service:/app
+      - /app/node_modules
+    environment:
+      NODE_ENV: development
+      PORT: 3002
+      POSTGRES_URL: postgresql://tradeflow:tradeflow_dev_password@postgres:5432/tradeflow
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - tradeflow-network
+    restart: unless-stopped
+
+  # Portfolio Service
+  portfolio-service:
+    build:
+      context: .
+      dockerfile: docker/portfolio-service/Dockerfile
+      target: development
+    container_name: tradeflow-portfolio-service
+    ports:
+      - "3003:3003"
+      - "9232:9229"  # Debug port
+    volumes:
+      - ./services/portfolio-service:/app
+      - /app/node_modules
+    environment:
+      NODE_ENV: development
+      PORT: 3003
+      POSTGRES_URL: postgresql://tradeflow:tradeflow_dev_password@postgres:5432/tradeflow
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - tradeflow-network
+    restart: unless-stopped
+
+  # Market Data Service
+  market-data-service:
+    build:
+      context: .
+      dockerfile: docker/market-data-service/Dockerfile
+      target: development
+    container_name: tradeflow-market-data-service
+    ports:
+      - "3004:3004"
+      - "9233:9229"  # Debug port
+    volumes:
+      - ./services/market-data-service:/app
+      - /app/node_modules
+    environment:
+      NODE_ENV: development
+      PORT: 3004
+      REDIS_URL: redis://redis:6379
+      ALPHA_VANTAGE_API_KEY: ${ALPHA_VANTAGE_API_KEY:-demo}
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - tradeflow-network
+    restart: unless-stopped
+
+  # C++ Engines (will be built separately)
+  trading-engine:
+    build:
+      context: .
+      dockerfile: docker/engines/Dockerfile
+      target: development
+    container_name: tradeflow-trading-engine
+    volumes:
+      - ./engines:/app/engines
+      - engines_build:/app/build
+    environment:
+      REDIS_URL: redis://redis:6379
+      POSTGRES_URL: postgresql://tradeflow:tradeflow_dev_password@postgres:5432/tradeflow
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - tradeflow-network
+    restart: unless-stopped
+    # For production, use host networking for ultra-low latency
+    # network_mode: host
+
+volumes:
+  postgres_data:
+  redis_data:
+  engines_build:
+
+networks:
+  tradeflow-network:
+    driver: bridge

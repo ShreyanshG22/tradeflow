@@ -1,0 +1,278 @@
+version: '3.8'
+
+# Production configuration for Zerodha services
+services:
+  zerodha-auth-service:
+    build:
+      context: ./services/zerodha-auth-service
+      dockerfile: Dockerfile
+      target: production
+    container_name: tradeflow-zerodha-auth-prod
+    ports:
+      - "3009:3009"
+    environment:
+      NODE_ENV: production
+      PORT: 3009
+      POSTGRES_URL: ${POSTGRES_URL}
+      REDIS_URL: ${REDIS_URL}
+      ZERODHA_API_KEY: ${ZERODHA_API_KEY}
+      ZERODHA_API_SECRET: ${ZERODHA_API_SECRET}
+      JWT_SECRET: ${JWT_SECRET}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - tradeflow-network
+    restart: always
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  zerodha-market-service:
+    build:
+      context: ./services/zerodha-market-service
+      dockerfile: Dockerfile
+      target: production
+    container_name: tradeflow-zerodha-market-prod
+    ports:
+      - "3005:3005"
+      - "8080:8080"
+    environment:
+      NODE_ENV: production
+      PORT: 3005
+      WS_PORT: 8080
+      REDIS_URL: ${REDIS_URL}
+      INFLUXDB_URL: ${INFLUXDB_URL}
+      ZERODHA_API_KEY: ${ZERODHA_API_KEY}
+      ZERODHA_API_SECRET: ${ZERODHA_API_SECRET}
+    depends_on:
+      redis:
+        condition: service_healthy
+      zerodha-auth-service:
+        condition: service_healthy
+      influxdb:
+        condition: service_healthy
+    networks:
+      - tradeflow-network
+    restart: always
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  zerodha-order-service:
+    build:
+      context: ./services/zerodha-order-service
+      dockerfile: Dockerfile
+      target: production
+    container_name: tradeflow-zerodha-order-prod
+    ports:
+      - "3006:3006"
+    environment:
+      NODE_ENV: production
+      PORT: 3006
+      POSTGRES_URL: ${POSTGRES_URL}
+      REDIS_URL: ${REDIS_URL}
+      ZERODHA_API_KEY: ${ZERODHA_API_KEY}
+      ZERODHA_API_SECRET: ${ZERODHA_API_SECRET}
+      ZERODHA_AUTH_SERVICE_URL: http://zerodha-auth-service:3009
+      ZERODHA_RISK_SERVICE_URL: http://zerodha-risk-service:3008
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      zerodha-auth-service:
+        condition: service_healthy
+      zerodha-risk-service:
+        condition: service_healthy
+    networks:
+      - tradeflow-network
+    restart: always
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  zerodha-portfolio-service:
+    build:
+      context: ./services/zerodha-portfolio-service
+      dockerfile: Dockerfile
+      target: production
+    container_name: tradeflow-zerodha-portfolio-prod
+    ports:
+      - "3007:3007"
+    environment:
+      NODE_ENV: production
+      PORT: 3007
+      POSTGRES_URL: ${POSTGRES_URL}
+      REDIS_URL: ${REDIS_URL}
+      ZERODHA_API_KEY: ${ZERODHA_API_KEY}
+      ZERODHA_API_SECRET: ${ZERODHA_API_SECRET}
+      ZERODHA_AUTH_SERVICE_URL: http://zerodha-auth-service:3009
+      ZERODHA_MARKET_SERVICE_URL: http://zerodha-market-service:3005
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      zerodha-auth-service:
+        condition: service_healthy
+      zerodha-market-service:
+        condition: service_healthy
+    networks:
+      - tradeflow-network
+    restart: always
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '0.75'
+          memory: 768M
+        reservations:
+          cpus: '0.25'
+          memory: 384M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  zerodha-risk-service:
+    build:
+      context: ./services/zerodha-risk-service
+      dockerfile: Dockerfile
+      target: production
+    container_name: tradeflow-zerodha-risk-prod
+    ports:
+      - "3008:3008"
+    environment:
+      NODE_ENV: production
+      PORT: 3008
+      POSTGRES_URL: ${POSTGRES_URL}
+      REDIS_URL: ${REDIS_URL}
+      ZERODHA_AUTH_SERVICE_URL: http://zerodha-auth-service:3009
+      ZERODHA_PORTFOLIO_SERVICE_URL: http://zerodha-portfolio-service:3007
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      zerodha-auth-service:
+        condition: service_healthy
+    networks:
+      - tradeflow-network
+    restart: always
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '0.75'
+          memory: 768M
+        reservations:
+          cpus: '0.25'
+          memory: 384M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  influxdb:
+    image: influxdb:2.7-alpine
+    container_name: tradeflow-influxdb-prod
+    ports:
+      - "8086:8086"
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+      - influxdb_config:/etc/influxdb2
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: ${INFLUXDB_USERNAME}
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUXDB_PASSWORD}
+      DOCKER_INFLUXDB_INIT_ORG: ${INFLUXDB_ORG}
+      DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUXDB_BUCKET}
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUXDB_ADMIN_TOKEN}
+    networks:
+      - tradeflow-network
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # NGINX Load Balancer for Zerodha services
+  zerodha-nginx:
+    image: nginx:alpine
+    container_name: tradeflow-zerodha-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/zerodha.conf:/etc/nginx/conf.d/default.conf
+      - ./docker/nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      - zerodha-auth-service
+      - zerodha-market-service
+      - zerodha-order-service
+      - zerodha-portfolio-service
+      - zerodha-risk-service
+    networks:
+      - tradeflow-network
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  influxdb_data:
+  influxdb_config:
+
+networks:
+  tradeflow-network:
+    external: true

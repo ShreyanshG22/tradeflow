@@ -1,0 +1,772 @@
+name: Zerodha Integration CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/services/zerodha-*/**'
+      - 'backend/shared/zerodha-utils/**'
+      - 'backend/engines/zerodha-integration/**'
+      - 'backend/docker/zerodha-services/**'
+      - 'backend/.env.zerodha.*'
+      - 'backend/docker-compose.zerodha.*'
+      - '.github/workflows/zerodha-integration-ci.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/services/zerodha-*/**'
+      - 'backend/shared/zerodha-utils/**'
+      - 'backend/engines/zerodha-integration/**'
+      - 'backend/docker/zerodha-services/**'
+      - 'backend/.env.zerodha.*'
+      - 'backend/docker-compose.zerodha.*'
+      - '.github/workflows/zerodha-integration-ci.yml'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment for deployment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+        - staging
+        - production
+      services:
+        description: 'Services to deploy (comma-separated or "all")'
+        required: false
+        default: 'all'
+        type: string
+      skip_tests:
+        description: 'Skip tests (for hotfixes)'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: tradeflow/zerodha
+  COVERAGE_THRESHOLD: 85
+  SECURITY_SCAN_SEVERITY: medium
+
+jobs:
+  # =============================================================================
+  # SETUP AND VALIDATION
+  # =============================================================================
+  setup:
+    name: Setup and Validation
+    runs-on: ubuntu-latest
+    outputs:
+      services-matrix: ${{ steps.services.outputs.matrix }}
+      version: ${{ steps.version.outputs.version }}
+      should-deploy: ${{ steps.deploy-check.outputs.should-deploy }}
+      target-environment: ${{ steps.deploy-check.outputs.environment }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Determine services to build/test
+      id: services
+      run: |
+        if [[ "${{ github.event.inputs.services }}" == "all" || -z "${{ github.event.inputs.services }}" ]]; then
+          SERVICES='["zerodha-auth-service", "zerodha-market-service", "zerodha-order-service", "zerodha-portfolio-service", "zerodha-risk-service"]'
+        else
+          # Convert comma-separated input to JSON array
+          SERVICES=$(echo "${{ github.event.inputs.services }}" | jq -R 'split(",") | map(select(length > 0) | "zerodha-" + . + "-service")')
+        fi
+        echo "matrix={\"service\": $SERVICES}" >> $GITHUB_OUTPUT
+        echo "Services to process: $SERVICES"
+
+    - name: Generate version
+      id: version
+      run: |
+        if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+          VERSION="v$(date +%Y%m%d)-$(git rev-parse --short HEAD)"
+        else
+          VERSION="dev-$(git rev-parse --short HEAD)"
+        fi
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Generated version: $VERSION"
+
+    - name: Check deployment conditions
+      id: deploy-check
+      run: |
+        SHOULD_DEPLOY="false"
+        ENVIRONMENT="none"
+        
+        # Deploy on manual trigger
+        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          SHOULD_DEPLOY="true"
+          ENVIRONMENT="${{ github.event.inputs.environment }}"
+        # Auto-deploy staging on develop branch
+        elif [[ "${{ github.ref }}" == "refs/heads/develop" && "${{ github.event_name }}" == "push" ]]; then
+          SHOULD_DEPLOY="true"
+          ENVIRONMENT="staging"
+        # Auto-deploy production on main branch (with manual approval)
+        elif [[ "${{ github.ref }}" == "refs/heads/main" && "${{ github.event_name }}" == "push" ]]; then
+          SHOULD_DEPLOY="true"
+          ENVIRONMENT="production"
+        fi
+        
+        echo "should-deploy=$SHOULD_DEPLOY" >> $GITHUB_OUTPUT
+        echo "environment=$ENVIRONMENT" >> $GITHUB_OUTPUT
+        echo "Deployment decision: $SHOULD_DEPLOY to $ENVIRONMENT"
+
+    - name: Validate configuration files
+      run: |
+        echo "Validating Zerodha configuration files..."
+        
+        # Check required environment files exist
+        for env in example staging production; do
+          file="backend/.env.zerodha.$env"
+          if [[ ! -f "$file" ]]; then
+            echo "::error::Missing environment file: $file"
+            exit 1
+          fi
+          echo "✓ Found $file"
+        done
+        
+        # Validate Docker Compose files
+        for compose in override staging prod; do
+          file="backend/docker-compose.zerodha.$compose.yml"
+          if [[ ! -f "$file" ]]; then
+            echo "::error::Missing Docker Compose file: $file"
+            exit 1
+          fi
+          echo "✓ Found $file"
+        done
+        
+        echo "All configuration files validated successfully"
+
+  # =============================================================================
+  # CODE QUALITY AND SECURITY
+  # =============================================================================
+  code-quality:
+    name: Code Quality Check
+    runs-on: ubuntu-latest
+    needs: setup
+    if: github.event.inputs.skip_tests != 'true'
+    
+    strategy:
+      matrix: ${{ fromJson(needs.setup.outputs.services-matrix) }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        cache-dependency-path: backend/services/${{ matrix.service }}/package-lock.json
+
+    - name: Install dependencies
+      working-directory: backend/services/${{ matrix.service }}
+      run: npm ci
+
+    - name: Run ESLint
+      working-directory: backend/services/${{ matrix.service }}
+      run: |
+        if npm run lint --if-present; then
+          echo "✓ ESLint passed for ${{ matrix.service }}"
+        else
+          echo "::error::ESLint failed for ${{ matrix.service }}"
+          exit 1
+        fi
+
+    - name: Run Prettier check
+      working-directory: backend/services/${{ matrix.service }}
+      run: |
+        if npm run format:check --if-present; then
+          echo "✓ Prettier check passed for ${{ matrix.service }}"
+        else
+          echo "::warning::Code formatting issues found in ${{ matrix.service }}"
+        fi
+
+    - name: TypeScript compilation check
+      working-directory: backend/services/${{ matrix.service }}
+      run: |
+        if npm run build; then
+          echo "✓ TypeScript compilation successful for ${{ matrix.service }}"
+        else
+          echo "::error::TypeScript compilation failed for ${{ matrix.service }}"
+          exit 1
+        fi
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: setup
+    if: github.event.inputs.skip_tests != 'true'
+    
+    strategy:
+      matrix: ${{ fromJson(needs.setup.outputs.services-matrix) }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        cache-dependency-path: backend/services/${{ matrix.service }}/package-lock.json
+
+    - name: Install dependencies
+      working-directory: backend/services/${{ matrix.service }}
+      run: npm ci
+
+    - name: Run npm audit
+      working-directory: backend/services/${{ matrix.service }}
+      run: |
+        echo "Running security audit for ${{ matrix.service }}..."
+        if npm audit --audit-level=${{ env.SECURITY_SCAN_SEVERITY }}; then
+          echo "✓ No security vulnerabilities found"
+        else
+          echo "::warning::Security vulnerabilities detected in ${{ matrix.service }}"
+          npm audit --audit-level=${{ env.SECURITY_SCAN_SEVERITY }} --json > audit-results.json || true
+        fi
+
+    - name: Run Snyk scan
+      uses: snyk/actions/node@master
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        args: --severity-threshold=${{ env.SECURITY_SCAN_SEVERITY }} --file=backend/services/${{ matrix.service }}/package.json
+      continue-on-error: true
+
+    - name: Upload security results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-results-${{ matrix.service }}
+        path: backend/services/${{ matrix.service }}/audit-results.json
+        retention-days: 30
+
+  # =============================================================================
+  # UNIT AND INTEGRATION TESTS
+  # =============================================================================
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: [setup, code-quality]
+    if: github.event.inputs.skip_tests != 'true'
+    
+    strategy:
+      matrix: ${{ fromJson(needs.setup.outputs.services-matrix) }}
+    
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_USER: test_user
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        cache-dependency-path: backend/services/${{ matrix.service }}/package-lock.json
+
+    - name: Install dependencies
+      working-directory: backend/services/${{ matrix.service }}
+      run: npm ci
+
+    - name: Install shared dependencies
+      working-directory: backend/shared/zerodha-utils
+      run: npm ci && npm run build
+
+    - name: Run unit tests with coverage
+      working-directory: backend/services/${{ matrix.service }}
+      run: npm test -- --coverage --coverageReporters=text-summary --coverageReporters=lcov --coverageReporters=json
+      env:
+        NODE_ENV: test
+        DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
+        REDIS_URL: redis://localhost:6379/1
+        JWT_SECRET: test-jwt-secret-key-for-testing-purposes-only
+        ENCRYPTION_KEY: test-encryption-key-32-characters
+        ZERODHA_API_KEY: test_api_key
+        ZERODHA_API_SECRET: test_api_secret
+
+    - name: Check coverage threshold
+      working-directory: backend/services/${{ matrix.service }}
+      run: |
+        if [[ -f coverage/coverage-summary.json ]]; then
+          COVERAGE=$(node -e "
+            const fs = require('fs');
+            const coverage = JSON.parse(fs.readFileSync('coverage/coverage-summary.json'));
+            const total = coverage.total;
+            console.log(Math.round((total.lines.pct + total.functions.pct + total.branches.pct + total.statements.pct) / 4));
+          ")
+          echo "Coverage for ${{ matrix.service }}: $COVERAGE%"
+          if [[ $COVERAGE -lt ${{ env.COVERAGE_THRESHOLD }} ]]; then
+            echo "::error::Coverage $COVERAGE% is below threshold ${{ env.COVERAGE_THRESHOLD }}%"
+            exit 1
+          fi
+          echo "coverage=$COVERAGE" >> $GITHUB_OUTPUT
+        fi
+      id: coverage
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: backend/services/${{ matrix.service }}/coverage/lcov.info
+        flags: ${{ matrix.service }}
+        name: ${{ matrix.service }}-coverage
+        fail_ci_if_error: false
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results-${{ matrix.service }}
+        path: |
+          backend/services/${{ matrix.service }}/coverage/
+          backend/services/${{ matrix.service }}/test-results.xml
+        retention-days: 30
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [setup, unit-tests]
+    if: github.event.inputs.skip_tests != 'true'
+    
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_USER: test_user
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+      
+      influxdb:
+        image: influxdb:2.7-alpine
+        env:
+          DOCKER_INFLUXDB_INIT_MODE: setup
+          DOCKER_INFLUXDB_INIT_USERNAME: admin
+          DOCKER_INFLUXDB_INIT_PASSWORD: test_password
+          DOCKER_INFLUXDB_INIT_ORG: test_org
+          DOCKER_INFLUXDB_INIT_BUCKET: test_bucket
+          DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: test_token
+        ports:
+          - 8086:8086
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        cache-dependency-path: backend/package-lock.json
+
+    - name: Install dependencies
+      working-directory: backend
+      run: |
+        # Install shared utilities
+        cd shared/zerodha-utils && npm ci && npm run build && cd ../..
+        
+        # Install service dependencies
+        for service in services/zerodha-*; do
+          if [[ -f "$service/package.json" ]]; then
+            echo "Installing dependencies for $service"
+            (cd "$service" && npm ci)
+          fi
+        done
+
+    - name: Setup test database
+      run: |
+        PGPASSWORD=test_password psql -h localhost -U test_user -d test_db -c "
+          CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";
+        "
+        
+        # Run database migrations
+        cd backend/database
+        npm ci
+        POSTGRES_URL=postgresql://test_user:test_password@localhost:5432/test_db npm run migrate
+
+    - name: Run integration tests
+      working-directory: backend
+      run: |
+        # Create test configuration
+        cat > .env.test << EOF
+        NODE_ENV=test
+        DATABASE_URL=postgresql://test_user:test_password@localhost:5432/test_db
+        REDIS_URL=redis://localhost:6379/1
+        INFLUXDB_URL=http://localhost:8086
+        INFLUXDB_TOKEN=test_token
+        INFLUXDB_ORG=test_org
+        INFLUXDB_BUCKET=test_bucket
+        JWT_SECRET=test-jwt-secret-key-for-testing-purposes-only
+        ENCRYPTION_KEY=test-encryption-key-32-characters
+        ZERODHA_API_KEY=test_api_key
+        ZERODHA_API_SECRET=test_api_secret
+        ZERODHA_AUTH_SERVICE_URL=http://localhost:3009
+        ZERODHA_MARKET_SERVICE_URL=http://localhost:3005
+        ZERODHA_ORDER_SERVICE_URL=http://localhost:3006
+        ZERODHA_PORTFOLIO_SERVICE_URL=http://localhost:3007
+        ZERODHA_RISK_SERVICE_URL=http://localhost:3008
+        EOF
+        
+        # Run integration tests
+        npm run test:integration:zerodha
+
+    - name: Upload integration test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: integration-test-results
+        path: |
+          backend/test-reports/
+          backend/integration-test-results.xml
+        retention-days: 30
+
+  # =============================================================================
+  # BUILD AND PUSH DOCKER IMAGES
+  # =============================================================================
+  build-images:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    needs: [setup, unit-tests, security-scan]
+    if: always() && (needs.unit-tests.result == 'success' || github.event.inputs.skip_tests == 'true') && (needs.security-scan.result == 'success' || github.event.inputs.skip_tests == 'true')
+    
+    strategy:
+      matrix: ${{ fromJson(needs.setup.outputs.services-matrix) }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-${{ matrix.service }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=raw,value=${{ needs.setup.outputs.version }}
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: backend/services/${{ matrix.service }}
+        file: backend/services/${{ matrix.service }}/Dockerfile
+        target: production
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        platforms: linux/amd64,linux/arm64
+
+    - name: Generate SBOM
+      uses: anchore/sbom-action@v0
+      with:
+        image: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-${{ matrix.service }}:${{ needs.setup.outputs.version }}
+        format: spdx-json
+        output-file: sbom-${{ matrix.service }}.spdx.json
+
+    - name: Upload SBOM
+      uses: actions/upload-artifact@v3
+      with:
+        name: sbom-${{ matrix.service }}
+        path: sbom-${{ matrix.service }}.spdx.json
+        retention-days: 90
+
+  # =============================================================================
+  # DEPLOYMENT
+  # =============================================================================
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [setup, build-images, integration-tests]
+    if: needs.setup.outputs.should-deploy == 'true' && needs.setup.outputs.target-environment == 'staging'
+    environment: staging
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: 'v1.28.0'
+
+    - name: Configure kubectl for staging
+      run: |
+        echo "${{ secrets.STAGING_KUBECONFIG }}" | base64 -d > kubeconfig
+        export KUBECONFIG=kubeconfig
+        kubectl config current-context
+
+    - name: Deploy to staging
+      run: |
+        export KUBECONFIG=kubeconfig
+        
+        # Update image tags in deployment manifests
+        VERSION="${{ needs.setup.outputs.version }}"
+        
+        # Apply Kubernetes manifests
+        kubectl apply -f backend/k8s/staging/
+        
+        # Update deployments with new image versions
+        for service in $(echo '${{ needs.setup.outputs.services-matrix }}' | jq -r '.service[]'); do
+          kubectl set image deployment/$service \
+            $service=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-$service:$VERSION \
+            -n zerodha-staging
+        done
+        
+        # Wait for rollout to complete
+        for service in $(echo '${{ needs.setup.outputs.services-matrix }}' | jq -r '.service[]'); do
+          kubectl rollout status deployment/$service -n zerodha-staging --timeout=300s
+        done
+
+    - name: Run smoke tests
+      run: |
+        export KUBECONFIG=kubeconfig
+        
+        # Get service endpoints
+        AUTH_URL=$(kubectl get service zerodha-auth-service -n zerodha-staging -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+        
+        # Run basic health checks
+        curl -f http://$AUTH_URL:3009/health || exit 1
+        
+        echo "Staging deployment successful and healthy"
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [setup, build-images, integration-tests]
+    if: needs.setup.outputs.should-deploy == 'true' && needs.setup.outputs.target-environment == 'production'
+    environment: production
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Manual approval checkpoint
+      uses: trstringer/manual-approval@v1
+      with:
+        secret: ${{ github.TOKEN }}
+        approvers: ${{ secrets.PRODUCTION_APPROVERS }}
+        minimum-approvals: 2
+        issue-title: "Production Deployment Approval Required"
+        issue-body: |
+          **Production Deployment Request**
+          
+          - **Version:** ${{ needs.setup.outputs.version }}
+          - **Commit:** ${{ github.sha }}
+          - **Services:** ${{ github.event.inputs.services || 'all' }}
+          - **Triggered by:** ${{ github.actor }}
+          
+          Please review the changes and approve this deployment.
+
+    - name: Setup kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: 'v1.28.0'
+
+    - name: Configure kubectl for production
+      run: |
+        echo "${{ secrets.PRODUCTION_KUBECONFIG }}" | base64 -d > kubeconfig
+        export KUBECONFIG=kubeconfig
+        kubectl config current-context
+
+    - name: Blue-Green Deployment
+      run: |
+        export KUBECONFIG=kubeconfig
+        VERSION="${{ needs.setup.outputs.version }}"
+        
+        # Create green deployment
+        for service in $(echo '${{ needs.setup.outputs.services-matrix }}' | jq -r '.service[]'); do
+          # Copy blue deployment to green
+          kubectl get deployment $service -n zerodha-production -o yaml | \
+            sed 's/name: '$service'/name: '$service'-green/' | \
+            sed 's/app: '$service'/app: '$service'-green/' | \
+            kubectl apply -f -
+          
+          # Update green deployment with new image
+          kubectl set image deployment/$service-green \
+            $service=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-$service:$VERSION \
+            -n zerodha-production
+          
+          # Wait for green deployment
+          kubectl rollout status deployment/$service-green -n zerodha-production --timeout=600s
+        done
+        
+        # Run production smoke tests on green deployment
+        ./scripts/production-smoke-tests.sh green
+        
+        # Switch traffic to green (update service selectors)
+        for service in $(echo '${{ needs.setup.outputs.services-matrix }}' | jq -r '.service[]'); do
+          kubectl patch service $service -n zerodha-production -p '{"spec":{"selector":{"app":"'$service'-green"}}}'
+        done
+        
+        # Wait and verify
+        sleep 30
+        ./scripts/production-smoke-tests.sh current
+        
+        # Clean up old blue deployment
+        for service in $(echo '${{ needs.setup.outputs.services-matrix }}' | jq -r '.service[]'); do
+          kubectl delete deployment $service -n zerodha-production || true
+          kubectl get deployment $service-green -n zerodha-production -o yaml | \
+            sed 's/name: '$service'-green/name: '$service'/' | \
+            sed 's/app: '$service'-green/app: '$service'/' | \
+            kubectl apply -f -
+          kubectl delete deployment $service-green -n zerodha-production
+        done
+
+    - name: Post-deployment verification
+      run: |
+        export KUBECONFIG=kubeconfig
+        
+        # Comprehensive health checks
+        ./scripts/production-health-check.sh
+        
+        # Performance baseline check
+        ./scripts/performance-regression-detector.sh
+        
+        echo "Production deployment completed successfully"
+
+  # =============================================================================
+  # NOTIFICATION AND CLEANUP
+  # =============================================================================
+  notify:
+    name: Notify Results
+    runs-on: ubuntu-latest
+    needs: [setup, unit-tests, integration-tests, security-scan, build-images, deploy-staging, deploy-production]
+    if: always()
+    
+    steps:
+    - name: Determine overall status
+      id: status
+      run: |
+        if [[ "${{ needs.unit-tests.result }}" == "failure" || "${{ needs.integration-tests.result }}" == "failure" ]]; then
+          echo "status=failure" >> $GITHUB_OUTPUT
+          echo "message=Tests failed" >> $GITHUB_OUTPUT
+        elif [[ "${{ needs.security-scan.result }}" == "failure" ]]; then
+          echo "status=warning" >> $GITHUB_OUTPUT
+          echo "message=Security issues detected" >> $GITHUB_OUTPUT
+        elif [[ "${{ needs.deploy-production.result }}" == "success" ]]; then
+          echo "status=success" >> $GITHUB_OUTPUT
+          echo "message=Successfully deployed to production" >> $GITHUB_OUTPUT
+        elif [[ "${{ needs.deploy-staging.result }}" == "success" ]]; then
+          echo "status=success" >> $GITHUB_OUTPUT
+          echo "message=Successfully deployed to staging" >> $GITHUB_OUTPUT
+        elif [[ "${{ needs.build-images.result }}" == "success" ]]; then
+          echo "status=success" >> $GITHUB_OUTPUT
+          echo "message=Images built successfully" >> $GITHUB_OUTPUT
+        else
+          echo "status=success" >> $GITHUB_OUTPUT
+          echo "message=Pipeline completed" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Slack notification
+      uses: 8398a7/action-slack@v3
+      if: always()
+      with:
+        status: ${{ steps.status.outputs.status }}
+        channel: '#tradeflow-deployments'
+        text: |
+          Zerodha Integration Pipeline: ${{ steps.status.outputs.message }}
+          
+          **Details:**
+          - Version: ${{ needs.setup.outputs.version }}
+          - Commit: ${{ github.sha }}
+          - Branch: ${{ github.ref_name }}
+          - Triggered by: ${{ github.actor }}
+          - Environment: ${{ needs.setup.outputs.target-environment }}
+          
+          **Results:**
+          - Unit Tests: ${{ needs.unit-tests.result }}
+          - Integration Tests: ${{ needs.integration-tests.result }}
+          - Security Scan: ${{ needs.security-scan.result }}
+          - Build Images: ${{ needs.build-images.result }}
+          - Deploy Staging: ${{ needs.deploy-staging.result }}
+          - Deploy Production: ${{ needs.deploy-production.result }}
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+    - name: Create GitHub release
+      if: github.ref == 'refs/heads/main' && needs.deploy-production.result == 'success'
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ needs.setup.outputs.version }}
+        release_name: Zerodha Integration ${{ needs.setup.outputs.version }}
+        body: |
+          ## Zerodha Integration Release ${{ needs.setup.outputs.version }}
+          
+          **Deployed Services:**
+          ${{ github.event.inputs.services || 'All services' }}
+          
+          **Changes:**
+          - Automated deployment from commit ${{ github.sha }}
+          - All tests passed
+          - Security scan completed
+          - Production deployment verified
+          
+          **Artifacts:**
+          - Docker images available in GitHub Container Registry
+          - SBOM reports attached
+          - Test coverage reports available
+        draft: false
+        prerelease: false

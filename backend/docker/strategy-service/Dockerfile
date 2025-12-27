@@ -1,0 +1,31 @@
+# Multi-stage build for Strategy Service
+FROM node:18-alpine AS base
+WORKDIR /app
+RUN apk add --no-cache dumb-init
+
+# Development stage
+FROM base AS development
+ENV NODE_ENV=development
+COPY services/strategy-service/package*.json ./
+RUN npm ci --only=development
+COPY services/strategy-service/ .
+EXPOSE 3002 9229
+CMD ["dumb-init", "npm", "run", "dev"]
+
+# Build stage
+FROM base AS build
+ENV NODE_ENV=production
+COPY services/strategy-service/package*.json ./
+RUN npm ci --only=production && npm cache clean --force
+COPY services/strategy-service/ .
+RUN npm run build
+
+# Production stage
+FROM base AS production
+ENV NODE_ENV=production
+USER node
+COPY --chown=node:node --from=build /app/dist ./dist
+COPY --chown=node:node --from=build /app/node_modules ./node_modules
+COPY --chown=node:node --from=build /app/package.json ./package.json
+EXPOSE 3002
+CMD ["dumb-init", "node", "dist/index.js"]

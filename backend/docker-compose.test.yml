@@ -1,0 +1,256 @@
+version: '3.8'
+
+services:
+  # Test Database
+  postgres-test:
+    image: postgres:15
+    container_name: tradeflow-postgres-test
+    environment:
+      POSTGRES_DB: test_db
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_password
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+      - ./database/schema:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test_user -d test_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - test-network
+
+  # Test Redis
+  redis-test:
+    image: redis:7-alpine
+    container_name: tradeflow-redis-test
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_test_data:/data
+      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf
+    command: redis-server /usr/local/etc/redis/redis.conf
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - test-network
+
+  # Test Market Data Simulator
+  market-data-simulator:
+    build:
+      context: .
+      dockerfile: docker/market-data-simulator/Dockerfile
+    container_name: tradeflow-market-data-simulator
+    environment:
+      - REDIS_URL=redis://redis-test:6379
+      - SIMULATION_MODE=test
+      - DATA_FREQUENCY=1000ms
+    depends_on:
+      redis-test:
+        condition: service_healthy
+    volumes:
+      - ./test-data:/app/test-data
+    networks:
+      - test-network
+
+  # Test Environment Setup
+  test-setup:
+    build:
+      context: .
+      dockerfile: docker/test-setup/Dockerfile
+    container_name: tradeflow-test-setup
+    environment:
+      - DATABASE_URL=postgresql://test_user:test_password@postgres-test:5432/test_db
+      - REDIS_URL=redis://redis-test:6379
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+    volumes:
+      - ./database/migrations:/app/migrations
+      - ./test-data:/app/test-data
+    command: /app/setup-test-environment.sh
+    networks:
+      - test-network
+
+  # Test Services (for integration testing)
+  user-service-test:
+    build:
+      context: ./services/user-service
+      dockerfile: Dockerfile
+      target: test
+    container_name: tradeflow-user-service-test
+    environment:
+      - NODE_ENV=test
+      - DATABASE_URL=postgresql://test_user:test_password@postgres-test:5432/test_db
+      - REDIS_URL=redis://redis-test:6379
+      - JWT_SECRET=test-secret-key
+      - JWT_REFRESH_SECRET=test-refresh-secret-key
+    depends_on:
+      test-setup:
+        condition: service_completed_successfully
+    ports:
+      - "3001:3000"
+    networks:
+      - test-network
+
+  api-gateway-test:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile
+      target: test
+    container_name: tradeflow-api-gateway-test
+    environment:
+      - NODE_ENV=test
+      - DATABASE_URL=postgresql://test_user:test_password@postgres-test:5432/test_db
+      - REDIS_URL=redis://redis-test:6379
+      - JWT_SECRET=test-secret-key
+      - JWT_REFRESH_SECRET=test-refresh-secret-key
+      - USER_SERVICE_URL=http://user-service-test:3000
+      - STRATEGY_SERVICE_URL=http://strategy-service-test:3000
+      - MARKET_DATA_SERVICE_URL=http://market-data-service-test:3000
+      - PORTFOLIO_SERVICE_URL=http://portfolio-service-test:3000
+    depends_on:
+      test-setup:
+        condition: service_completed_successfully
+      user-service-test:
+        condition: service_started
+    ports:
+      - "3000:3000"
+    networks:
+      - test-network
+
+  strategy-service-test:
+    build:
+      context: ./services/strategy-service
+      dockerfile: Dockerfile
+      target: test
+    container_name: tradeflow-strategy-service-test
+    environment:
+      - NODE_ENV=test
+      - DATABASE_URL=postgresql://test_user:test_password@postgres-test:5432/test_db
+      - REDIS_URL=redis://redis-test:6379
+    depends_on:
+      test-setup:
+        condition: service_completed_successfully
+    ports:
+      - "3002:3000"
+    networks:
+      - test-network
+
+  market-data-service-test:
+    build:
+      context: ./services/market-data-service
+      dockerfile: Dockerfile
+      target: test
+    container_name: tradeflow-market-data-service-test
+    environment:
+      - NODE_ENV=test
+      - REDIS_URL=redis://redis-test:6379
+      - ALPHA_VANTAGE_API_KEY=test-key
+    depends_on:
+      test-setup:
+        condition: service_completed_successfully
+      market-data-simulator:
+        condition: service_started
+    ports:
+      - "3003:3000"
+    networks:
+      - test-network
+
+  portfolio-service-test:
+    build:
+      context: ./services/portfolio-service
+      dockerfile: Dockerfile
+      target: test
+    container_name: tradeflow-portfolio-service-test
+    environment:
+      - NODE_ENV=test
+      - DATABASE_URL=postgresql://test_user:test_password@postgres-test:5432/test_db
+      - REDIS_URL=redis://redis-test:6379
+    depends_on:
+      test-setup:
+        condition: service_completed_successfully
+    ports:
+      - "3004:3000"
+    networks:
+      - test-network
+
+  # Test Runner
+  test-runner:
+    build:
+      context: .
+      dockerfile: docker/test-runner/Dockerfile
+    container_name: tradeflow-test-runner
+    environment:
+      - NODE_ENV=test
+      - DATABASE_URL=postgresql://test_user:test_password@postgres-test:5432/test_db
+      - REDIS_URL=redis://redis-test:6379
+      - API_GATEWAY_URL=http://api-gateway-test:3000
+      - TEST_TIMEOUT=300000
+      - COVERAGE_THRESHOLD=80
+    depends_on:
+      api-gateway-test:
+        condition: service_started
+      user-service-test:
+        condition: service_started
+      strategy-service-test:
+        condition: service_started
+      market-data-service-test:
+        condition: service_started
+      portfolio-service-test:
+        condition: service_started
+    volumes:
+      - ./test-results:/app/test-results
+      - ./coverage:/app/coverage
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: /app/run-integration-tests.sh
+    networks:
+      - test-network
+
+  # Performance Test Environment
+  performance-test:
+    build:
+      context: .
+      dockerfile: docker/performance-test/Dockerfile
+    container_name: tradeflow-performance-test
+    environment:
+      - NODE_ENV=test
+      - DATABASE_URL=postgresql://test_user:test_password@postgres-test:5432/test_db
+      - REDIS_URL=redis://redis-test:6379
+      - PERFORMANCE_MODE=true
+      - BENCHMARK_ITERATIONS=10000
+    depends_on:
+      test-setup:
+        condition: service_completed_successfully
+    volumes:
+      - ./performance-results:/app/performance-results
+      - ./engines/build:/app/engines/build
+    command: /app/run-performance-tests.sh
+    networks:
+      - test-network
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+
+volumes:
+  postgres_test_data:
+    driver: local
+  redis_test_data:
+    driver: local
+
+networks:
+  test-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

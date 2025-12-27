@@ -1,0 +1,35 @@
+# TradeFlow Database Migration Container
+# This container is used for running migrations in deployment pipelines
+
+FROM node:18-alpine
+
+# Install PostgreSQL client for pg_isready and psql
+RUN apk add --no-cache postgresql-client
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package.json ./
+RUN npm install --production
+
+# Copy migration files
+COPY migrate.js ./
+COPY migrate.sh ./
+COPY migrations/ ./migrations/
+COPY schema/ ./schema/
+
+# Make scripts executable
+RUN chmod +x migrate.sh migrate.js
+
+# Set default command
+CMD ["./migrate.sh", "migrate"]
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD pg_isready -d "$POSTGRES_URL" || exit 1
+
+# Labels
+LABEL maintainer="TradeFlow Team"
+LABEL description="Database migration container for TradeFlow"
+LABEL version="1.0.0"

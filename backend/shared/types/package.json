@@ -1,0 +1,19 @@
+{
+  "name": "@tradeflow/types",
+  "version": "1.0.0",
+  "description": "Shared TypeScript types for TradeFlow services",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0",
+    "@types/node": "^20.5.0"
+  }
+}

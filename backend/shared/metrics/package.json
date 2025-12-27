@@ -1,0 +1,20 @@
+{
+  "name": "@tradeflow/metrics",
+  "version": "1.0.0",
+  "description": "Prometheus metrics collection for TradeFlow services",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "prom-client": "^15.1.0",
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/express": "^4.17.21",
+    "typescript": "^5.0.0"
+  }
+}

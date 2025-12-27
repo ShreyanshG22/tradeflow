@@ -1,0 +1,217 @@
+version: '3.8'
+
+# Override file for Zerodha services integration with main docker-compose.yml
+services:
+  # Add Zerodha services to the main compose
+  zerodha-auth-service:
+    build:
+      context: ./services/zerodha-auth-service
+      dockerfile: Dockerfile
+      target: development
+    container_name: tradeflow-zerodha-auth
+    ports:
+      - "3009:3009"
+      - "9239:9229"
+    volumes:
+      - ./services/zerodha-auth-service:/app
+      - /app/node_modules
+    environment:
+      NODE_ENV: development
+      PORT: 3009
+      POSTGRES_URL: postgresql://tradeflow:tradeflow_dev_password@postgres:5432/tradeflow
+      REDIS_URL: redis://redis:6379
+      ZERODHA_API_KEY: ${ZERODHA_API_KEY}
+      ZERODHA_API_SECRET: ${ZERODHA_API_SECRET}
+      JWT_SECRET: ${JWT_SECRET:-tradeflow_jwt_secret_dev}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-tradeflow_encryption_key_dev_32chars}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - tradeflow-network
+    restart: unless-stopped
+
+  zerodha-market-service:
+    build:
+      context: ./services/zerodha-market-service
+      dockerfile: Dockerfile
+      target: development
+    container_name: tradeflow-zerodha-market
+    ports:
+      - "3005:3005"
+      - "9235:9229"
+      - "8080:8080"
+    volumes:
+      - ./services/zerodha-market-service:/app
+      - /app/node_modules
+    environment:
+      NODE_ENV: development
+      PORT: 3005
+      WS_PORT: 8080
+      REDIS_URL: redis://redis:6379
+      INFLUXDB_URL: http://influxdb:8086
+      ZERODHA_API_KEY: ${ZERODHA_API_KEY}
+      ZERODHA_API_SECRET: ${ZERODHA_API_SECRET}
+    depends_on:
+      redis:
+        condition: service_healthy
+      zerodha-auth-service:
+        condition: service_started
+      influxdb:
+        condition: service_healthy
+    networks:
+      - tradeflow-network
+    restart: unless-stopped
+
+  zerodha-order-service:
+    build:
+      context: ./services/zerodha-order-service
+      dockerfile: Dockerfile
+      target: development
+    container_name: tradeflow-zerodha-order
+    ports:
+      - "3006:3006"
+      - "9236:9229"
+    volumes:
+      - ./services/zerodha-order-service:/app
+      - /app/node_modules
+    environment:
+      NODE_ENV: development
+      PORT: 3006
+      POSTGRES_URL: postgresql://tradeflow:tradeflow_dev_password@postgres:5432/tradeflow
+      REDIS_URL: redis://redis:6379
+      ZERODHA_API_KEY: ${ZERODHA_API_KEY}
+      ZERODHA_API_SECRET: ${ZERODHA_API_SECRET}
+      ZERODHA_AUTH_SERVICE_URL: http://zerodha-auth-service:3009
+      ZERODHA_RISK_SERVICE_URL: http://zerodha-risk-service:3008
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      zerodha-auth-service:
+        condition: service_started
+      zerodha-risk-service:
+        condition: service_started
+    networks:
+      - tradeflow-network
+    restart: unless-stopped
+
+  zerodha-portfolio-service:
+    build:
+      context: ./services/zerodha-portfolio-service
+      dockerfile: Dockerfile
+      target: development
+    container_name: tradeflow-zerodha-portfolio
+    ports:
+      - "3007:3007"
+      - "9237:9229"
+    volumes:
+      - ./services/zerodha-portfolio-service:/app
+      - /app/node_modules
+    environment:
+      NODE_ENV: development
+      PORT: 3007
+      POSTGRES_URL: postgresql://tradeflow:tradeflow_dev_password@postgres:5432/tradeflow
+      REDIS_URL: redis://redis:6379
+      ZERODHA_API_KEY: ${ZERODHA_API_KEY}
+      ZERODHA_API_SECRET: ${ZERODHA_API_SECRET}
+      ZERODHA_AUTH_SERVICE_URL: http://zerodha-auth-service:3009
+      ZERODHA_MARKET_SERVICE_URL: http://zerodha-market-service:3005
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      zerodha-auth-service:
+        condition: service_started
+      zerodha-market-service:
+        condition: service_started
+    networks:
+      - tradeflow-network
+    restart: unless-stopped
+
+  zerodha-risk-service:
+    build:
+      context: ./services/zerodha-risk-service
+      dockerfile: Dockerfile
+      target: development
+    container_name: tradeflow-zerodha-risk
+    ports:
+      - "3008:3008"
+      - "9238:9229"
+    volumes:
+      - ./services/zerodha-risk-service:/app
+      - /app/node_modules
+    environment:
+      NODE_ENV: development
+      PORT: 3008
+      POSTGRES_URL: postgresql://tradeflow:tradeflow_dev_password@postgres:5432/tradeflow
+      REDIS_URL: redis://redis:6379
+      ZERODHA_AUTH_SERVICE_URL: http://zerodha-auth-service:3009
+      ZERODHA_PORTFOLIO_SERVICE_URL: http://zerodha-portfolio-service:3007
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      zerodha-auth-service:
+        condition: service_started
+    networks:
+      - tradeflow-network
+    restart: unless-stopped
+
+  influxdb:
+    image: influxdb:2.7-alpine
+    container_name: tradeflow-influxdb
+    ports:
+      - "8086:8086"
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+      - influxdb_config:/etc/influxdb2
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: tradeflow_influx_password
+      DOCKER_INFLUXDB_INIT_ORG: tradeflow
+      DOCKER_INFLUXDB_INIT_BUCKET: market_data
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: tradeflow_admin_token
+    networks:
+      - tradeflow-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "influx", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Update API Gateway to include Zerodha routes
+  api-gateway:
+    environment:
+      ZERODHA_AUTH_SERVICE_URL: http://zerodha-auth-service:3009
+      ZERODHA_MARKET_SERVICE_URL: http://zerodha-market-service:3005
+      ZERODHA_ORDER_SERVICE_URL: http://zerodha-order-service:3006
+      ZERODHA_PORTFOLIO_SERVICE_URL: http://zerodha-portfolio-service:3007
+      ZERODHA_RISK_SERVICE_URL: http://zerodha-risk-service:3008
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      zerodha-auth-service:
+        condition: service_started
+      zerodha-market-service:
+        condition: service_started
+      zerodha-order-service:
+        condition: service_started
+      zerodha-portfolio-service:
+        condition: service_started
+      zerodha-risk-service:
+        condition: service_started
+
+volumes:
+  influxdb_data:
+  influxdb_config:

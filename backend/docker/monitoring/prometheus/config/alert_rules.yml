@@ -1,0 +1,138 @@
+groups:
+  - name: tradeflow_system_alerts
+    rules:
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is above 80% for more than 5 minutes on {{ $labels.instance }}"
+
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is above 85% for more than 5 minutes on {{ $labels.instance }}"
+
+      - alert: HighDiskUsage
+        expr: (node_filesystem_size_bytes - node_filesystem_free_bytes) / node_filesystem_size_bytes * 100 > 90
+        for: 10m
+        labels:
+          severity: critical
+          service: system
+        annotations:
+          summary: "High disk usage detected"
+          description: "Disk usage is above 90% for more than 10 minutes on {{ $labels.instance }}"
+
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: "{{ $labels.job }}"
+        annotations:
+          summary: "Service is down"
+          description: "{{ $labels.job }} service is down for more than 1 minute"
+
+  - name: tradeflow_application_alerts
+    rules:
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) * 100 > 5
+        for: 5m
+        labels:
+          severity: warning
+          service: "{{ $labels.job }}"
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is above 5% for {{ $labels.job }} service"
+
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+          service: "{{ $labels.job }}"
+        annotations:
+          summary: "High response time detected"
+          description: "95th percentile response time is above 1 second for {{ $labels.job }} service"
+
+      - alert: DatabaseConnectionFailure
+        expr: increase(database_connection_errors_total[5m]) > 10
+        for: 2m
+        labels:
+          severity: critical
+          service: database
+        annotations:
+          summary: "Database connection failures"
+          description: "More than 10 database connection failures in the last 5 minutes"
+
+  - name: tradeflow_trading_alerts
+    rules:
+      - alert: TradingEngineHighLatency
+        expr: trading_engine_latency_microseconds > 100
+        for: 1m
+        labels:
+          severity: critical
+          service: trading-engine
+        annotations:
+          summary: "Trading engine high latency"
+          description: "Trading engine latency is above 100 microseconds"
+
+      - alert: RiskLimitBreach
+        expr: risk_manager_limit_breaches_total > 0
+        for: 0s
+        labels:
+          severity: critical
+          service: risk-manager
+        annotations:
+          summary: "Risk limit breach detected"
+          description: "Risk manager has detected a limit breach"
+
+      - alert: MarketDataLag
+        expr: market_data_lag_seconds > 5
+        for: 30s
+        labels:
+          severity: warning
+          service: market-data
+        annotations:
+          summary: "Market data lag detected"
+          description: "Market data is lagging by more than 5 seconds"
+
+      - alert: StrategyExecutionFailure
+        expr: increase(strategy_execution_failures_total[5m]) > 5
+        for: 2m
+        labels:
+          severity: warning
+          service: strategy-service
+        annotations:
+          summary: "Strategy execution failures"
+          description: "More than 5 strategy execution failures in the last 5 minutes"
+
+  - name: tradeflow_business_alerts
+    rules:
+      - alert: PortfolioValueDrop
+        expr: (portfolio_total_value - portfolio_total_value offset 1h) / portfolio_total_value offset 1h * 100 < -10
+        for: 5m
+        labels:
+          severity: warning
+          service: portfolio
+        annotations:
+          summary: "Significant portfolio value drop"
+          description: "Portfolio value has dropped by more than 10% in the last hour"
+
+      - alert: UnusualTradingVolume
+        expr: trading_volume_24h > trading_volume_24h offset 7d * 3
+        for: 10m
+        labels:
+          severity: info
+          service: trading
+        annotations:
+          summary: "Unusual trading volume detected"
+          description: "Trading volume is 3x higher than the same time last week"

@@ -1,0 +1,78 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zerodha-config
+  namespace: zerodha-staging
+  labels:
+    app.kubernetes.io/name: tradeflow-zerodha
+    app.kubernetes.io/component: config
+    app.kubernetes.io/part-of: tradeflow
+    environment: staging
+data:
+  NODE_ENV: "staging"
+  LOG_LEVEL: "info"
+  DEBUG_MODE: "true"
+  ENABLE_CORS: "true"
+  CORS_ORIGIN: "https://staging.tradeflow.com"
+  
+  # Service URLs (internal cluster communication)
+  ZERODHA_AUTH_SERVICE_URL: "http://zerodha-auth-service:3009"
+  ZERODHA_MARKET_SERVICE_URL: "http://zerodha-market-service:3005"
+  ZERODHA_ORDER_SERVICE_URL: "http://zerodha-order-service:3006"
+  ZERODHA_PORTFOLIO_SERVICE_URL: "http://zerodha-portfolio-service:3007"
+  ZERODHA_RISK_SERVICE_URL: "http://zerodha-risk-service:3008"
+  
+  # Service Ports
+  ZERODHA_AUTH_SERVICE_PORT: "3009"
+  ZERODHA_MARKET_SERVICE_PORT: "3005"
+  ZERODHA_ORDER_SERVICE_PORT: "3006"
+  ZERODHA_PORTFOLIO_SERVICE_PORT: "3007"
+  ZERODHA_RISK_SERVICE_PORT: "3008"
+  ZERODHA_WS_PORT: "8080"
+  
+  # Rate Limiting
+  RATE_LIMIT_WINDOW_MS: "60000"
+  RATE_LIMIT_MAX_REQUESTS: "500"
+  RATE_LIMIT_AUTH_MAX: "50"
+  RATE_LIMIT_ORDER_MAX: "200"
+  
+  # Market Data Configuration
+  MARKET_DATA_CACHE_TTL: "60"
+  INSTRUMENT_CACHE_TTL: "86400"
+  HISTORICAL_DATA_CACHE_TTL: "3600"
+  WS_HEARTBEAT_INTERVAL: "30000"
+  WS_RECONNECT_INTERVAL: "5000"
+  MAX_WS_RECONNECT_ATTEMPTS: "15"
+  
+  # Order Management
+  ORDER_TIMEOUT_MS: "30000"
+  ORDER_RETRY_ATTEMPTS: "3"
+  ORDER_RETRY_DELAY: "1000"
+  MAX_ORDERS_PER_MINUTE: "100"
+  ORDER_VALIDATION_TIMEOUT: "5000"
+  
+  # Risk Management
+  DEFAULT_MAX_ORDER_VALUE: "50000"
+  DEFAULT_MAX_DAILY_LOSS: "25000"
+  DEFAULT_MAX_POSITION_SIZE: "500000"
+  RISK_CHECK_TIMEOUT: "5000"
+  PORTFOLIO_UPDATE_INTERVAL: "30000"
+  
+  # Circuit Breaker
+  CIRCUIT_BREAKER_FAILURE_THRESHOLD: "5"
+  CIRCUIT_BREAKER_RESET_TIMEOUT: "60000"
+  CIRCUIT_BREAKER_MONITOR_TIMEOUT: "10000"
+  
+  # Monitoring
+  HEALTH_CHECK_INTERVAL: "30000"
+  HEALTH_CHECK_TIMEOUT: "5000"
+  METRICS_COLLECTION_INTERVAL: "60000"
+  
+  # Logging
+  LOG_FORMAT: "json"
+  LOG_TIMESTAMP: "true"
+  LOG_COLORIZE: "true"
+  LOG_FILE_PATH: "/app/logs"
+  LOG_MAX_SIZE: "20m"
+  LOG_MAX_FILES: "7"
+  LOG_DATE_PATTERN: "YYYY-MM-DD"

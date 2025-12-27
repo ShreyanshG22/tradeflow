@@ -1,0 +1,22 @@
+cluster.name: "tradeflow-logs"
+network.host: 0.0.0.0
+
+# Disable X-Pack security for development
+xpack.security.enabled: false
+xpack.security.enrollment.enabled: false
+
+# Memory settings
+bootstrap.memory_lock: true
+
+# Index settings for log retention
+action.auto_create_index: true
+
+# Performance settings
+indices.memory.index_buffer_size: 10%
+indices.memory.min_index_buffer_size: 48mb
+
+# Log retention policies
+cluster.routing.allocation.disk.threshold.enabled: true
+cluster.routing.allocation.disk.watermark.low: 85%
+cluster.routing.allocation.disk.watermark.high: 90%
+cluster.routing.allocation.disk.watermark.flood_stage: 95%

@@ -1,0 +1,41 @@
+{
+  "name": "@tradeflow/zerodha-auth-service",
+  "version": "1.0.0",
+  "description": "Zerodha authentication service for TradeFlow platform",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "test": "jest",
+    "test:watch": "jest --watch"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "helmet": "^7.0.0",
+    "dotenv": "^16.3.1",
+    "jsonwebtoken": "^9.0.2",
+    "bcryptjs": "^2.4.3",
+    "crypto": "^1.0.1",
+    "redis": "^4.6.7",
+    "pg": "^8.11.3",
+    "axios": "^1.5.0",
+    "winston": "^3.10.0",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.17",
+    "@types/cors": "^2.8.13",
+    "@types/jsonwebtoken": "^9.0.2",
+    "@types/bcryptjs": "^2.4.2",
+    "@types/pg": "^8.10.2",
+    "@types/node": "^20.5.0",
+    "@types/uuid": "^9.0.2",
+    "typescript": "^5.1.6",
+    "ts-node-dev": "^2.0.0",
+    "jest": "^29.6.2",
+    "@types/jest": "^29.5.3",
+    "ts-jest": "^29.1.1"
+  }
+}

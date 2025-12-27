@@ -1,0 +1,17 @@
+# TradeFlow Log Management Cron Jobs
+# Add these entries to your crontab with: crontab -e
+
+# Archive old logs daily at 2 AM
+0 2 * * * /path/to/tradeflow/backend/scripts/log-management.sh archive >> /var/log/tradeflow/log-management.log 2>&1
+
+# Clean up old archives weekly on Sunday at 3 AM
+0 3 * * 0 /path/to/tradeflow/backend/scripts/log-management.sh cleanup >> /var/log/tradeflow/log-management.log 2>&1
+
+# Create backups daily at 1 AM
+0 1 * * * /path/to/tradeflow/backend/scripts/log-management.sh backup >> /var/log/tradeflow/log-management.log 2>&1
+
+# Monitor disk usage every 6 hours
+0 */6 * * * /path/to/tradeflow/backend/scripts/log-management.sh monitor >> /var/log/tradeflow/log-management.log 2>&1
+
+# Generate statistics weekly on Monday at 6 AM
+0 6 * * 1 /path/to/tradeflow/backend/scripts/log-management.sh stats >> /var/log/tradeflow/log-management.log 2>&1

@@ -1,0 +1,22 @@
+{
+  "name": "@tradeflow/logging",
+  "version": "1.0.0",
+  "description": "Centralized logging configuration for TradeFlow services",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "winston": "^3.11.0",
+    "winston-elasticsearch": "^0.17.4",
+    "winston-daily-rotate-file": "^4.7.1",
+    "@elastic/elasticsearch": "^8.11.0",
+    "fluent-logger": "^3.4.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}

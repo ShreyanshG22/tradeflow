@@ -1,0 +1,254 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "TradeFlow Trading Performance",
+    "tags": ["tradeflow", "trading", "performance"],
+    "style": "dark",
+    "timezone": "browser",
+    "refresh": "1s",
+    "time": {
+      "from": "now-15m",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Trading Engine Latency",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "trading_engine_latency_microseconds",
+            "legendFormat": "Latency (μs)"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "unit": "µs",
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "yellow",
+                  "value": 50
+                },
+                {
+                  "color": "red",
+                  "value": 100
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": 2,
+        "title": "Order Processing Rate",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(trading_engine_orders_processed_total[1m])",
+            "legendFormat": "Orders/sec"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "unit": "ops"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        }
+      },
+      {
+        "id": 3,
+        "title": "Risk Manager Response Time",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "risk_manager_response_time_microseconds",
+            "legendFormat": "Risk Check Time (μs)"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "unit": "µs",
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "yellow",
+                  "value": 10
+                },
+                {
+                  "color": "red",
+                  "value": 50
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 8
+        }
+      },
+      {
+        "id": 4,
+        "title": "Market Data Latency",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "market_data_lag_seconds",
+            "legendFormat": "Market Data Lag (s)"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "unit": "s",
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "yellow",
+                  "value": 1
+                },
+                {
+                  "color": "red",
+                  "value": 5
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 8
+        }
+      },
+      {
+        "id": 5,
+        "title": "Strategy Execution Success Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(strategy_execution_success_total[5m]) / (rate(strategy_execution_success_total[5m]) + rate(strategy_execution_failures_total[5m])) * 100",
+            "legendFormat": "Success Rate %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "unit": "percent",
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "red",
+                  "value": 0
+                },
+                {
+                  "color": "yellow",
+                  "value": 95
+                },
+                {
+                  "color": "green",
+                  "value": 99
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 8,
+          "x": 0,
+          "y": 16
+        }
+      },
+      {
+        "id": 6,
+        "title": "Active Strategies",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "strategy_active_count",
+            "legendFormat": "Active Strategies"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            }
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 8,
+          "x": 8,
+          "y": 16
+        }
+      },
+      {
+        "id": 7,
+        "title": "Portfolio Value",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "portfolio_total_value",
+            "legendFormat": "Total Value"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "unit": "currencyUSD"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 8,
+          "x": 16,
+          "y": 16
+        }
+      }
+    ]
+  }
+}

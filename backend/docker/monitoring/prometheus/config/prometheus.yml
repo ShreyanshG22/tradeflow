@@ -1,0 +1,109 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'tradeflow'
+    environment: 'production'
+
+rule_files:
+  - "alert_rules.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Node Exporter for system metrics
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 5s
+
+  # cAdvisor for container metrics
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+    scrape_interval: 5s
+
+  # TradeFlow Services
+  - job_name: 'user-service'
+    static_configs:
+      - targets: ['host.docker.internal:3001']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  - job_name: 'api-gateway'
+    static_configs:
+      - targets: ['host.docker.internal:3000']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  - job_name: 'strategy-service'
+    static_configs:
+      - targets: ['host.docker.internal:3003']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  - job_name: 'portfolio-service'
+    static_configs:
+      - targets: ['host.docker.internal:3004']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  - job_name: 'market-data-service'
+    static_configs:
+      - targets: ['host.docker.internal:3002']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  - job_name: 'monitoring-service'
+    static_configs:
+      - targets: ['host.docker.internal:3006']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  # Database metrics
+  - job_name: 'postgres-exporter'
+    static_configs:
+      - targets: ['host.docker.internal:9187']
+    scrape_interval: 30s
+
+  - job_name: 'redis-exporter'
+    static_configs:
+      - targets: ['host.docker.internal:9121']
+    scrape_interval: 30s
+
+  # Trading Engine metrics (custom endpoint)
+  - job_name: 'trading-engine'
+    static_configs:
+      - targets: ['host.docker.internal:8081']
+    metrics_path: '/metrics'
+    scrape_interval: 5s
+    scrape_timeout: 2s
+
+  - job_name: 'risk-manager'
+    static_configs:
+      - targets: ['host.docker.internal:8082']
+    metrics_path: '/metrics'
+    scrape_interval: 5s
+    scrape_timeout: 2s
+
+  - job_name: 'backtest-engine'
+    static_configs:
+      - targets: ['host.docker.internal:8083']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    scrape_timeout: 10s

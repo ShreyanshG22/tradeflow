@@ -1,0 +1,898 @@
+name: Backend Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-tests.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-tests.yml'
+  schedule:
+    # Run nightly performance regression tests
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      test_type:
+        description: 'Type of tests to run'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+        - all
+        - unit
+        - integration
+        - performance
+        - security
+      performance_baseline:
+        description: 'Performance baseline comparison (commit SHA)'
+        required: false
+        type: string
+
+env:
+  COVERAGE_THRESHOLD: 80
+  PERFORMANCE_THRESHOLD_LATENCY_US: 10
+  PERFORMANCE_THRESHOLD_THROUGHPUT_OPS: 100000
+
+jobs:
+  test-environment-setup:
+    name: Setup Test Environment
+    runs-on: ubuntu-latest
+    outputs:
+      test-matrix: ${{ steps.test-matrix.outputs.matrix }}
+      performance-baseline: ${{ steps.baseline.outputs.commit }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Determine test matrix
+      id: test-matrix
+      run: |
+        if [ "${{ github.event.inputs.test_type }}" = "unit" ]; then
+          echo "matrix={\"include\":[{\"type\":\"unit\"}]}" >> $GITHUB_OUTPUT
+        elif [ "${{ github.event.inputs.test_type }}" = "integration" ]; then
+          echo "matrix={\"include\":[{\"type\":\"integration\"}]}" >> $GITHUB_OUTPUT
+        elif [ "${{ github.event.inputs.test_type }}" = "performance" ]; then
+          echo "matrix={\"include\":[{\"type\":\"performance\"}]}" >> $GITHUB_OUTPUT
+        elif [ "${{ github.event.inputs.test_type }}" = "security" ]; then
+          echo "matrix={\"include\":[{\"type\":\"security\"}]}" >> $GITHUB_OUTPUT
+        else
+          echo "matrix={\"include\":[{\"type\":\"unit\"},{\"type\":\"integration\"},{\"type\":\"performance\"},{\"type\":\"security\"}]}" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Determine performance baseline
+      id: baseline
+      run: |
+        if [ -n "${{ github.event.inputs.performance_baseline }}" ]; then
+          echo "commit=${{ github.event.inputs.performance_baseline }}" >> $GITHUB_OUTPUT
+        else
+          # Use last commit on main branch as baseline
+          BASELINE=$(git rev-parse origin/main)
+          echo "commit=$BASELINE" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Setup test data
+      run: |
+        mkdir -p test-data
+        # Generate test market data
+        cat > test-data/sample_market_data.csv << 'EOF'
+        timestamp,symbol,price,volume
+        2024-01-01T09:30:00Z,AAPL,150.00,1000
+        2024-01-01T09:30:01Z,AAPL,150.05,1500
+        2024-01-01T09:30:02Z,AAPL,149.95,800
+        EOF
+        
+        # Generate test strategy configuration
+        cat > test-data/sample_strategy.json << 'EOF'
+        {
+          "name": "Test Strategy",
+          "nodes": [
+            {"id": "entry", "type": "entry", "config": {"indicator": "sma", "period": 20}},
+            {"id": "exit", "type": "exit", "config": {"stopLoss": 0.02, "takeProfit": 0.05}}
+          ],
+          "connections": [{"from": "entry", "to": "exit"}]
+        }
+        EOF
+
+    - name: Upload test data
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-data
+        path: test-data/
+        retention-days: 1
+
+  nodejs-tests:
+    name: Node.js Service Tests
+    runs-on: ubuntu-latest
+    needs: test-environment-setup
+    if: contains(fromJson(needs.test-environment-setup.outputs.test-matrix).include[*].type, 'unit') || github.event.inputs.test_type == 'all' || github.event.inputs.test_type == ''
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [18.x, 20.x]
+        service: 
+          - user-service
+          - api-gateway
+          - market-data-service
+          - strategy-service
+          - portfolio-service
+          - monitoring-service
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_USER: test_user
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download test data
+      uses: actions/download-artifact@v3
+      with:
+        name: test-data
+        path: test-data/
+
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: backend/services/${{ matrix.service }}/package-lock.json
+
+    - name: Install dependencies
+      working-directory: backend/services/${{ matrix.service }}
+      run: npm ci
+
+    - name: Run linting
+      working-directory: backend/services/${{ matrix.service }}
+      run: |
+        if [ -f "package.json" ] && grep -q '"lint"' package.json; then
+          npm run lint
+        else
+          echo "No lint script found, skipping..."
+        fi
+
+    - name: Run tests with coverage
+      working-directory: backend/services/${{ matrix.service }}
+      run: npm test -- --coverage --coverageReporters=text-summary --coverageReporters=lcov --coverageReporters=json
+      env:
+        NODE_ENV: test
+        DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
+        REDIS_URL: redis://localhost:6379/1
+        JWT_SECRET: test-secret-key
+        JWT_REFRESH_SECRET: test-refresh-secret-key
+        TEST_DATA_PATH: ../../../../test-data
+
+    - name: Check coverage threshold
+      working-directory: backend/services/${{ matrix.service }}
+      run: |
+        if [ -f coverage/coverage-summary.json ]; then
+          COVERAGE=$(node -e "
+            const fs = require('fs');
+            const coverage = JSON.parse(fs.readFileSync('coverage/coverage-summary.json'));
+            const total = coverage.total;
+            console.log(Math.round((total.lines.pct + total.functions.pct + total.branches.pct + total.statements.pct) / 4));
+          ")
+          echo "Coverage: $COVERAGE%"
+          if [ $COVERAGE -lt $COVERAGE_THRESHOLD ]; then
+            echo "::error::Coverage $COVERAGE% is below threshold $COVERAGE_THRESHOLD%"
+            exit 1
+          fi
+          echo "coverage=$COVERAGE" >> $GITHUB_OUTPUT
+        fi
+      id: coverage
+
+    - name: Generate test report
+      if: always()
+      working-directory: backend/services/${{ matrix.service }}
+      run: |
+        mkdir -p test-reports
+        cat > test-reports/test-report.json << EOF
+        {
+          "service": "${{ matrix.service }}",
+          "node_version": "${{ matrix.node-version }}",
+          "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+          "status": "${{ job.status }}",
+          "coverage": "${{ steps.coverage.outputs.coverage || 'N/A' }}",
+          "test_files": $(find . -name "*.test.ts" -o -name "*.test.js" | wc -l),
+          "commit": "${{ github.sha }}"
+        }
+        EOF
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: backend/services/${{ matrix.service }}/coverage/lcov.info
+        flags: ${{ matrix.service }}
+        name: ${{ matrix.service }}-coverage
+        fail_ci_if_error: false
+
+    - name: Upload test reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: nodejs-test-reports-${{ matrix.service }}-${{ matrix.node-version }}
+        path: backend/services/${{ matrix.service }}/test-reports/
+        retention-days: 30
+
+  cpp-tests:
+    name: C++ Engine Tests
+    runs-on: ubuntu-latest
+    needs: test-environment-setup
+    if: contains(fromJson(needs.test-environment-setup.outputs.test-matrix).include[*].type, 'unit') || github.event.inputs.test_type == 'all' || github.event.inputs.test_type == ''
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [gcc, clang]
+        build-type: [Debug, Release]
+        exclude:
+          # Skip clang Release builds for faster CI
+          - compiler: clang
+            build-type: Release
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download test data
+      uses: actions/download-artifact@v3
+      with:
+        name: test-data
+        path: test-data/
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          cmake \
+          libgtest-dev \
+          libhiredis-dev \
+          libpq-dev \
+          pkg-config \
+          lcov \
+          bc \
+          valgrind
+
+    - name: Setup compiler
+      run: |
+        if [ "${{ matrix.compiler }}" = "clang" ]; then
+          sudo apt-get install -y clang
+          echo "CC=clang" >> $GITHUB_ENV
+          echo "CXX=clang++" >> $GITHUB_ENV
+        else
+          echo "CC=gcc" >> $GITHUB_ENV
+          echo "CXX=g++" >> $GITHUB_ENV
+        fi
+
+    - name: Configure CMake
+      working-directory: backend/engines
+      run: |
+        mkdir -p build
+        cd build
+        cmake -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DBUILD_TESTS=ON -DENABLE_COVERAGE=ON ..
+
+    - name: Build
+      working-directory: backend/engines/build
+      run: make -j$(nproc)
+
+    - name: Run tests with memory checking (Debug only)
+      if: matrix.build-type == 'Debug'
+      working-directory: backend/engines/build
+      run: |
+        # Run tests with valgrind for memory leak detection
+        ctest --output-on-failure --verbose -T memcheck || true
+        
+        # Run regular tests
+        ctest --output-on-failure --verbose
+
+    - name: Run tests (Release)
+      if: matrix.build-type == 'Release'
+      working-directory: backend/engines/build
+      run: ctest --output-on-failure --verbose
+
+    - name: Generate coverage (Debug + GCC only)
+      if: matrix.build-type == 'Debug' && matrix.compiler == 'gcc'
+      working-directory: backend/engines/build
+      run: |
+        lcov --directory . --capture --output-file coverage.info
+        lcov --remove coverage.info '/usr/*' --output-file coverage.info
+        lcov --remove coverage.info '*/test*' --output-file coverage.info
+        lcov --list coverage.info
+        
+        # Check coverage threshold
+        COVERAGE=$(lcov --summary coverage.info | grep -o 'lines......: [0-9.]*%' | grep -o '[0-9.]*' | head -1)
+        echo "C++ Coverage: $COVERAGE%"
+        if [ $(echo "$COVERAGE < $COVERAGE_THRESHOLD" | bc -l) -eq 1 ]; then
+          echo "::warning::C++ coverage $COVERAGE% is below threshold $COVERAGE_THRESHOLD%"
+        fi
+
+    - name: Generate test report
+      if: always()
+      working-directory: backend/engines/build
+      run: |
+        mkdir -p test-reports
+        cat > test-reports/cpp-test-report.json << EOF
+        {
+          "compiler": "${{ matrix.compiler }}",
+          "build_type": "${{ matrix.build-type }}",
+          "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+          "status": "${{ job.status }}",
+          "test_count": $(ctest --show-only=json-v1 | jq '.tests | length' 2>/dev/null || echo "0"),
+          "commit": "${{ github.sha }}"
+        }
+        EOF
+
+    - name: Upload coverage to Codecov
+      if: matrix.build-type == 'Debug' && matrix.compiler == 'gcc'
+      uses: codecov/codecov-action@v3
+      with:
+        file: backend/engines/build/coverage.info
+        flags: cpp-engines
+        name: cpp-engines-coverage
+        fail_ci_if_error: false
+
+    - name: Upload test reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: cpp-test-reports-${{ matrix.compiler }}-${{ matrix.build-type }}
+        path: backend/engines/build/test-reports/
+        retention-days: 30
+
+    - name: Upload memory check results
+      uses: actions/upload-artifact@v3
+      if: always() && matrix.build-type == 'Debug'
+      with:
+        name: memory-check-results-${{ matrix.compiler }}
+        path: backend/engines/build/Testing/Temporary/MemoryChecker.*.log
+        retention-days: 7
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [test-environment-setup, nodejs-tests, cpp-tests]
+    if: contains(fromJson(needs.test-environment-setup.outputs.test-matrix).include[*].type, 'integration') || github.event.inputs.test_type == 'all' || github.event.inputs.test_type == ''
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_USER: test_user
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download test data
+      uses: actions/download-artifact@v3
+      with:
+        name: test-data
+        path: test-data/
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        cache-dependency-path: backend/package-lock.json
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          cmake \
+          libhiredis-dev \
+          libpq-dev \
+          pkg-config
+
+    - name: Install Node.js dependencies
+      working-directory: backend
+      run: npm ci
+
+    - name: Build C++ engines
+      working-directory: backend/engines
+      run: |
+        mkdir -p build
+        cd build
+        cmake -DCMAKE_BUILD_TYPE=Release ..
+        make -j$(nproc)
+
+    - name: Setup test database
+      run: |
+        PGPASSWORD=test_password psql -h localhost -U test_user -d test_db -c "
+          CREATE TABLE IF NOT EXISTS test_results (
+            id SERIAL PRIMARY KEY,
+            test_suite VARCHAR(100),
+            test_name VARCHAR(200),
+            status VARCHAR(20),
+            duration_ms INTEGER,
+            timestamp TIMESTAMP DEFAULT NOW()
+          );
+        "
+
+    - name: Run integration tests
+      working-directory: backend
+      run: ./scripts/run-integration-tests.sh --coverage
+      env:
+        NODE_ENV: test
+        DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
+        REDIS_URL: redis://localhost:6379/1
+        JWT_SECRET: test-secret-key
+        JWT_REFRESH_SECRET: test-refresh-secret-key
+        TEST_DATA_PATH: ../test-data
+
+    - name: Generate integration test report
+      if: always()
+      working-directory: backend
+      run: |
+        mkdir -p test-reports
+        cat > test-reports/integration-test-report.json << EOF
+        {
+          "test_type": "integration",
+          "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+          "status": "${{ job.status }}",
+          "services_tested": [
+            "user-service",
+            "api-gateway", 
+            "market-data-service",
+            "strategy-service",
+            "portfolio-service"
+          ],
+          "commit": "${{ github.sha }}"
+        }
+        EOF
+
+    - name: Upload test report
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: integration-test-report
+        path: backend/test-reports/
+        retention-days: 30
+
+    - name: Upload integration test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: integration-test-results
+        path: backend/test-report.md
+        retention-days: 30
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: test-environment-setup
+    if: contains(fromJson(needs.test-environment-setup.outputs.test-matrix).include[*].type, 'security') || github.event.inputs.test_type == 'all' || github.event.inputs.test_type == ''
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+
+    - name: Install dependencies
+      working-directory: backend
+      run: |
+        # Install dependencies for all services
+        for service in services/*/; do
+          if [ -f "$service/package.json" ]; then
+            (cd "$service" && npm ci)
+          fi
+        done
+
+    - name: Run npm audit
+      working-directory: backend
+      run: |
+        echo "# Security Audit Report" > security-report.md
+        echo "Generated: $(date)" >> security-report.md
+        echo "" >> security-report.md
+        
+        for service in services/*/; do
+          if [ -f "$service/package.json" ]; then
+            service_name=$(basename "$service")
+            echo "## $service_name" >> security-report.md
+            (cd "$service" && npm audit --audit-level=moderate --json > audit.json 2>/dev/null || true)
+            if [ -f "$service/audit.json" ]; then
+              vulnerabilities=$(jq '.metadata.vulnerabilities.total // 0' "$service/audit.json")
+              echo "- Vulnerabilities found: $vulnerabilities" >> security-report.md
+              if [ "$vulnerabilities" -gt 0 ]; then
+                echo "::warning::$service_name has $vulnerabilities vulnerabilities"
+              fi
+            fi
+          fi
+        done
+
+    - name: Run Snyk security scan
+      uses: snyk/actions/node@master
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        args: --all-projects --severity-threshold=medium --json-file-output=snyk-results.json
+      continue-on-error: true
+
+    - name: Run security tests
+      working-directory: backend
+      run: ./scripts/run-security-tests.sh
+      env:
+        NODE_ENV: test
+
+    - name: Generate security report
+      if: always()
+      run: |
+        mkdir -p security-reports
+        cat > security-reports/security-scan-report.json << EOF
+        {
+          "scan_type": "security",
+          "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+          "status": "${{ job.status }}",
+          "tools_used": ["npm-audit", "snyk", "custom-security-tests"],
+          "commit": "${{ github.sha }}"
+        }
+        EOF
+
+    - name: Upload security reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-reports
+        path: |
+          backend/security-report.md
+          snyk-results.json
+          security-reports/
+        retention-days: 90
+
+  performance-tests:
+    name: Performance Tests
+    runs-on: ubuntu-latest
+    needs: [test-environment-setup, integration-tests]
+    if: (contains(fromJson(needs.test-environment-setup.outputs.test-matrix).include[*].type, 'performance') || github.event.inputs.test_type == 'all' || github.event.inputs.test_type == '' || github.event_name == 'schedule') && (github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Checkout baseline (for comparison)
+      if: needs.test-environment-setup.outputs.performance-baseline != github.sha
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ needs.test-environment-setup.outputs.performance-baseline }}
+        path: baseline
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential cmake libhiredis-dev libpq-dev bc jq
+
+    - name: Build current version
+      working-directory: backend/engines
+      run: |
+        mkdir -p build
+        cd build
+        cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON -DENABLE_BENCHMARKS=ON ..
+        make -j$(nproc)
+
+    - name: Build baseline version
+      if: needs.test-environment-setup.outputs.performance-baseline != github.sha
+      working-directory: baseline/backend/engines
+      run: |
+        mkdir -p build
+        cd build
+        cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON -DENABLE_BENCHMARKS=ON ..
+        make -j$(nproc)
+
+    - name: Run performance benchmarks (current)
+      working-directory: backend/engines/build
+      run: |
+        echo "Running current version benchmarks..."
+        ./benchmark_latency > current_latency.log 2>&1 || true
+        ./benchmark_throughput > current_throughput.log 2>&1 || true
+        ./benchmark_memory > current_memory.log 2>&1 || true
+
+    - name: Run performance benchmarks (baseline)
+      if: needs.test-environment-setup.outputs.performance-baseline != github.sha
+      working-directory: baseline/backend/engines/build
+      run: |
+        echo "Running baseline version benchmarks..."
+        ./benchmark_latency > baseline_latency.log 2>&1 || true
+        ./benchmark_throughput > baseline_throughput.log 2>&1 || true
+        ./benchmark_memory > baseline_memory.log 2>&1 || true
+
+    - name: Analyze performance regression
+      run: |
+        mkdir -p performance-reports
+        
+        # Extract current performance metrics
+        CURRENT_LATENCY=$(grep -o 'Average latency: [0-9.]*' backend/engines/build/current_latency.log | grep -o '[0-9.]*' || echo "0")
+        CURRENT_THROUGHPUT=$(grep -o 'Throughput: [0-9]*' backend/engines/build/current_throughput.log | grep -o '[0-9]*' || echo "0")
+        
+        echo "Current performance:"
+        echo "- Latency: ${CURRENT_LATENCY}μs"
+        echo "- Throughput: ${CURRENT_THROUGHPUT} ops/sec"
+        
+        # Check against thresholds
+        LATENCY_FAIL=0
+        THROUGHPUT_FAIL=0
+        
+        if [ $(echo "$CURRENT_LATENCY > $PERFORMANCE_THRESHOLD_LATENCY_US" | bc -l) -eq 1 ]; then
+          echo "::error::Latency $CURRENT_LATENCY μs exceeds threshold $PERFORMANCE_THRESHOLD_LATENCY_US μs"
+          LATENCY_FAIL=1
+        fi
+        
+        if [ $CURRENT_THROUGHPUT -lt $PERFORMANCE_THRESHOLD_THROUGHPUT_OPS ]; then
+          echo "::error::Throughput $CURRENT_THROUGHPUT ops/sec below threshold $PERFORMANCE_THRESHOLD_THROUGHPUT_OPS ops/sec"
+          THROUGHPUT_FAIL=1
+        fi
+        
+        # Compare with baseline if available
+        if [ -f "baseline/backend/engines/build/baseline_latency.log" ]; then
+          BASELINE_LATENCY=$(grep -o 'Average latency: [0-9.]*' baseline/backend/engines/build/baseline_latency.log | grep -o '[0-9.]*' || echo "0")
+          BASELINE_THROUGHPUT=$(grep -o 'Throughput: [0-9]*' baseline/backend/engines/build/baseline_throughput.log | grep -o '[0-9]*' || echo "0")
+          
+          LATENCY_CHANGE=$(echo "scale=2; (($CURRENT_LATENCY - $BASELINE_LATENCY) / $BASELINE_LATENCY) * 100" | bc -l)
+          THROUGHPUT_CHANGE=$(echo "scale=2; (($CURRENT_THROUGHPUT - $BASELINE_THROUGHPUT) / $BASELINE_THROUGHPUT) * 100" | bc -l)
+          
+          echo "Performance comparison with baseline:"
+          echo "- Latency change: ${LATENCY_CHANGE}%"
+          echo "- Throughput change: ${THROUGHPUT_CHANGE}%"
+          
+          # Check for significant regression (>5% worse)
+          if [ $(echo "$LATENCY_CHANGE > 5" | bc -l) -eq 1 ]; then
+            echo "::warning::Latency regression detected: ${LATENCY_CHANGE}% increase"
+          fi
+          
+          if [ $(echo "$THROUGHPUT_CHANGE < -5" | bc -l) -eq 1 ]; then
+            echo "::warning::Throughput regression detected: ${THROUGHPUT_CHANGE}% decrease"
+          fi
+        fi
+        
+        # Generate performance report
+        cat > performance-reports/performance-report.json << EOF
+        {
+          "test_type": "performance",
+          "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+          "commit": "${{ github.sha }}",
+          "baseline_commit": "${{ needs.test-environment-setup.outputs.performance-baseline }}",
+          "metrics": {
+            "current": {
+              "latency_us": $CURRENT_LATENCY,
+              "throughput_ops": $CURRENT_THROUGHPUT
+            },
+            "baseline": {
+              "latency_us": ${BASELINE_LATENCY:-null},
+              "throughput_ops": ${BASELINE_THROUGHPUT:-null}
+            },
+            "changes": {
+              "latency_percent": ${LATENCY_CHANGE:-null},
+              "throughput_percent": ${THROUGHPUT_CHANGE:-null}
+            }
+          },
+          "thresholds": {
+            "max_latency_us": $PERFORMANCE_THRESHOLD_LATENCY_US,
+            "min_throughput_ops": $PERFORMANCE_THRESHOLD_THROUGHPUT_OPS
+          },
+          "status": {
+            "latency_pass": $([ $LATENCY_FAIL -eq 0 ] && echo "true" || echo "false"),
+            "throughput_pass": $([ $THROUGHPUT_FAIL -eq 0 ] && echo "true" || echo "false")
+          }
+        }
+        EOF
+        
+        # Fail if thresholds exceeded
+        if [ $LATENCY_FAIL -eq 1 ] || [ $THROUGHPUT_FAIL -eq 1 ]; then
+          exit 1
+        fi
+
+    - name: Upload performance results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: performance-results
+        path: |
+          backend/engines/build/current_*.log
+          baseline/backend/engines/build/baseline_*.log
+          performance-reports/
+        retention-days: 90
+
+  test-report-aggregation:
+    name: Aggregate Test Results
+    runs-on: ubuntu-latest
+    needs: [nodejs-tests, cpp-tests, integration-tests, security-scan, performance-tests]
+    if: always()
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download all test reports
+      uses: actions/download-artifact@v3
+      with:
+        path: all-test-reports/
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+
+    - name: Aggregate test results
+      run: |
+        mkdir -p final-reports
+        
+        # Create comprehensive test report
+        cat > final-reports/comprehensive-test-report.md << 'EOF'
+        # TradeFlow Backend Test Report
+        
+        **Generated:** $(date -u +%Y-%m-%dT%H:%M:%SZ)
+        **Commit:** ${{ github.sha }}
+        **Branch:** ${{ github.ref_name }}
+        **Trigger:** ${{ github.event_name }}
+        
+        ## Test Results Summary
+        
+        | Test Suite | Status | Details |
+        |------------|--------|---------|
+        EOF
+        
+        # Add Node.js test results
+        if [ -d "all-test-reports" ]; then
+          find all-test-reports -name "*nodejs-test-reports*" -type d | while read dir; do
+            if [ -f "$dir/test-report.json" ]; then
+              service=$(jq -r '.service' "$dir/test-report.json")
+              status=$(jq -r '.status' "$dir/test-report.json")
+              coverage=$(jq -r '.coverage' "$dir/test-report.json")
+              echo "| Node.js ($service) | $status | Coverage: $coverage% |" >> final-reports/comprehensive-test-report.md
+            fi
+          done
+        fi
+        
+        # Add C++ test results
+        if [ -d "all-test-reports" ]; then
+          find all-test-reports -name "*cpp-test-reports*" -type d | while read dir; do
+            if [ -f "$dir/cpp-test-report.json" ]; then
+              compiler=$(jq -r '.compiler' "$dir/cpp-test-report.json")
+              build_type=$(jq -r '.build_type' "$dir/cpp-test-report.json")
+              status=$(jq -r '.status' "$dir/cpp-test-report.json")
+              echo "| C++ ($compiler-$build_type) | $status | Engine tests |" >> final-reports/comprehensive-test-report.md
+            fi
+          done
+        fi
+        
+        # Add other test results
+        echo "| Integration Tests | ${{ needs.integration-tests.result }} | End-to-end workflows |" >> final-reports/comprehensive-test-report.md
+        echo "| Security Scan | ${{ needs.security-scan.result }} | Vulnerability assessment |" >> final-reports/comprehensive-test-report.md
+        echo "| Performance Tests | ${{ needs.performance-tests.result }} | Latency & throughput |" >> final-reports/comprehensive-test-report.md
+        
+        # Add test metrics
+        cat >> final-reports/comprehensive-test-report.md << 'EOF'
+        
+        ## Test Metrics
+        
+        - **Total Test Suites:** $(find all-test-reports -name "*.json" | wc -l)
+        - **Coverage Threshold:** ${{ env.COVERAGE_THRESHOLD }}%
+        - **Performance Thresholds:** 
+          - Max Latency: ${{ env.PERFORMANCE_THRESHOLD_LATENCY_US }}μs
+          - Min Throughput: ${{ env.PERFORMANCE_THRESHOLD_THROUGHPUT_OPS }} ops/sec
+        
+        ## Artifacts
+        
+        - Test coverage reports available in individual service directories
+        - Performance benchmarks in performance-results artifact
+        - Security scan results in security-reports artifact
+        - Memory leak detection results (if applicable)
+        
+        EOF
+
+    - name: Create test metrics JSON
+      run: |
+        cat > final-reports/test-metrics.json << EOF
+        {
+          "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+          "commit": "${{ github.sha }}",
+          "branch": "${{ github.ref_name }}",
+          "trigger": "${{ github.event_name }}",
+          "results": {
+            "nodejs_tests": "${{ needs.nodejs-tests.result }}",
+            "cpp_tests": "${{ needs.cpp-tests.result }}",
+            "integration_tests": "${{ needs.integration-tests.result }}",
+            "security_scan": "${{ needs.security-scan.result }}",
+            "performance_tests": "${{ needs.performance-tests.result }}"
+          },
+          "thresholds": {
+            "coverage_percent": ${{ env.COVERAGE_THRESHOLD }},
+            "max_latency_us": ${{ env.PERFORMANCE_THRESHOLD_LATENCY_US }},
+            "min_throughput_ops": ${{ env.PERFORMANCE_THRESHOLD_THROUGHPUT_OPS }}
+          }
+        }
+        EOF
+
+    - name: Upload final test report
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: final-test-report
+        path: final-reports/
+        retention-days: 90
+
+    - name: Comment PR with test results
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          if (fs.existsSync('final-reports/comprehensive-test-report.md')) {
+            const report = fs.readFileSync('final-reports/comprehensive-test-report.md', 'utf8');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: report
+            });
+          }
+
+    - name: Notify on failure
+      if: failure()
+      run: |
+        echo "::error::Test suite failed. Check individual job results for details."
+        echo "Failed jobs:"
+        echo "- Node.js tests: ${{ needs.nodejs-tests.result }}"
+        echo "- C++ tests: ${{ needs.cpp-tests.result }}"
+        echo "- Integration tests: ${{ needs.integration-tests.result }}"
+        echo "- Security scan: ${{ needs.security-scan.result }}"
+        echo "- Performance tests: ${{ needs.performance-tests.result }}"
