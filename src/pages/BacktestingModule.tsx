@@ -18,7 +18,7 @@ const BacktestingModule = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
     
     if (isBacktestRunning && !isPaused) {
       interval = setInterval(() => {

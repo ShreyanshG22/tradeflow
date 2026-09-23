@@ -37,7 +37,7 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginFormData) => {
     try {
       setIsLoading(true);
-      await login(data);
+      await login({ email: data.email!, password: data.password! });
       navigate('/dashboard');
     } catch (error) {
       // Error is already handled by the useAuth hook
