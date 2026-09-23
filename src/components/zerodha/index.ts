@@ -67,6 +67,3 @@ export type {
   ZerodhaHolding
 } from './ZerodhaHoldings';
 
-export type {
-  ZerodhaPortfolioSummary
-} from './ZerodhaPortfolioSummary';

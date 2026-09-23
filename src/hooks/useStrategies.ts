@@ -84,9 +84,9 @@ export function useBacktest(id: string) {
     queryKey: ['backtest', id],
     queryFn: () => apiClient.getBacktest(id),
     enabled: !!id,
-    refetchInterval: (data) => {
+    refetchInterval: (query: any) => {
       // Poll every 2 seconds if backtest is running
-      return data?.status === 'running' ? 2000 : false;
+      return query?.state?.data?.status === 'running' ? 2000 : false;
     },
   });
 }
