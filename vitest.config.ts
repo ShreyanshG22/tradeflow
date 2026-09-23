@@ -8,7 +8,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
-    setupFiles: ['./src/components/zerodha/__tests__/setup.ts'],
+    setupFiles: ['./src/components/zerodha/__tests__/setup.tsx'],
     css: true,
   },
   resolve: {

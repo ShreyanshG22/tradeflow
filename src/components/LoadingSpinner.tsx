@@ -1,6 +1,11 @@
-import { TrendingUp } from 'lucide-react';
+import { TrendingUp, Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
-export default function LoadingSpinner() {
+export function LoadingSpinner({ className }: { className?: string }) {
+  return <Loader2 className={cn('animate-spin text-primary', className)} />;
+}
+
+export default function FullPageLoader() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="text-center">
