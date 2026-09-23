@@ -37,9 +37,16 @@ const queryClient = new QueryClient({
   },
 });
 
+// Auth temporarily bypassed — all routes are open
+const BYPASS_AUTH = true;
+
 // Protected Route Component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
+
+  if (BYPASS_AUTH) {
+    return <>{children}</>;
+  }
 
   if (isLoading) {
     return <LoadingSpinner />;
@@ -55,6 +62,10 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 // Public Route Component (redirect to dashboard if authenticated)
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
+
+  if (BYPASS_AUTH) {
+    return <>{children}</>;
+  }
 
   if (isLoading) {
     return <LoadingSpinner />;
