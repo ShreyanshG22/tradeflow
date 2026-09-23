@@ -82,7 +82,7 @@ export function DashboardActiveStrategies() {
       </CardContent>
       <CardFooter className="border-t pt-3">
         <Button asChild variant="ghost" className="w-full justify-between text-sm h-8">
-          <Link to="/trading">
+          <Link to="/live-trading">
             <span>Manage strategies</span>
             <ArrowRight className="h-4 w-4" />
           </Link>

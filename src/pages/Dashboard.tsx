@@ -404,7 +404,7 @@ const AppSidebar = () => {
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild tooltip="Live Trading">
-              <Link to="/trading">
+              <Link to="/live-trading">
                 <Zap className="h-5 w-5" />
                 <span>Live Trading</span>
                 <Badge className="ml-auto bg-green-500">New</Badge>
@@ -413,7 +413,7 @@ const AppSidebar = () => {
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild tooltip="Performance Reports">
-              <Link to="/reports">
+              <Link to="/performance">
                 <FileText className="h-5 w-5" />
                 <span>Performance Reports</span>
               </Link>
